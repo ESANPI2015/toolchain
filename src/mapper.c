@@ -65,7 +65,7 @@ int main (int argc, char *argv[])
             target = priority_list_next(&it))
     {
         fprintf(stderr, "Generate Behaviour Graph for target %u\n", target->id);
-        snprintf(name, bg_MAX_STRING_LENGTH, "deploy_to_%u.yml", target->id);
+        snprintf(name, bg_MAX_STRING_LENGTH, "deploy_to_%u.bg", target->id);
         bg_graph_alloc(&graph, name);
         sw2hw_map_create_subgraph(&mapping, target->id, graph);
         bg_graph_to_yaml_file(name, graph);
