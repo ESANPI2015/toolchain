@@ -1,0 +1,67 @@
+name: hwTest
+nodes:
+- id: 1
+  type: CONVENTIONAL
+  ports:
+    - id: 0
+      type: NDLCOM
+      name: PORT1
+    - id: 1
+      type: NDLCOM
+      name: PORT2
+    - id: 2
+      type: NDLCOM
+      name: PORT3
+    - id: 3
+      type: NDLCOM
+      name: PORT4
+- id: 2
+  type: FPGA
+  ports:
+    - id: 0
+      type: NDLCOM
+      name: PORT1
+- id: 3
+  type: FPGA
+  ports:
+    - id: 0
+      type: NDLCOM
+      name: PORT1
+- id: 4
+  type: FPGA
+  ports:
+    - id: 0
+      type: NDLCOM
+      name: PORT1
+- id: 5
+  type: FPGA
+  ports:
+    - id: 0
+      type: NDLCOM
+      name: PORT1
+
+edges:
+- id: 1
+  name: WURST
+  node: 1
+  port: 0
+  node: 2
+  port: 0
+- id: 2
+  name: WURST
+  node: 1
+  port: 1
+  node: 3
+  port: 0
+- id: 3
+  name: WURST
+  node: 1
+  port: 2
+  node: 4
+  port: 0
+- id: 4
+  name: WURST
+  node: 1
+  port: 3
+  node: 5
+  port: 0
