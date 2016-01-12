@@ -16,12 +16,7 @@ int main (int argc, char *argv[])
     char hwYamlFile[HWG_MAX_STRING_LENGTH];
     char swYamlFile[bg_MAX_STRING_LENGTH];
     char outfileName[SW2HW_MAX_STRING_LENGTH];
-    /*char name[bg_MAX_STRING_LENGTH];*/
     sw2hw_map_t mapping;
-    sw2hw_map_entry_t *entry;
-    priority_list_iterator_t it;
-    /*hw_node_t *target;*/
-    /*bg_graph_t *graph;*/
 
     printf("SW to HW Mapper\n");
 
@@ -54,30 +49,9 @@ int main (int argc, char *argv[])
     do {
         while (sw2hw_map_refine(&mapping, defaultCost) == SW2HW_ERR_NONE);
     } while (sw2hw_map_regroup(&mapping, defaultCost) == SW2HW_ERR_NONE);
-
-    for (entry = priority_list_first(mapping.assignments, &it);
-            entry;
-            entry = priority_list_next(&it))
-    {
-        fprintf(stderr, "SW ID %u -> TARGET %u GLOBAL COST: %d\n", entry->swId, entry->hwId, priority_list_get_priority(&it));
-    }
-
-    /*For each target create a subgraph*/
-    /*for (target = priority_list_first(mapping.hwGraph->nodes, &it);*/
-            /*target;*/
-            /*target = priority_list_next(&it))*/
-    /*{*/
-        /*fprintf(stderr, "Generate Behaviour Graph for target %u\n", target->id);*/
-        /*snprintf(name, bg_MAX_STRING_LENGTH, "deploy_to_%u.bg", target->id);*/
-        /*bg_graph_alloc(&graph, name);*/
-        /*sw2hw_map_create_subgraph(&mapping, target->id, graph);*/
-        /*bg_graph_to_yaml_file(name, graph);*/
-        /*bg_graph_free(graph);*/
-    /*}*/
     sw2hw_map_to_yaml_file(outfileName, &mapping);
 
     sw2hw_map_destroy(&mapping);
-
     bg_terminate();
     exit(EXIT_SUCCESS);
 }

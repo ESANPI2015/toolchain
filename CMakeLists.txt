@@ -75,6 +75,15 @@ target_link_libraries(sw2hw
 add_dependencies(sw2hw
     mapBG hwGraph c_bagel
     )
+add_executable(map2bg
+    src/generateBGFromMapping.c
+    )
+target_link_libraries(map2bg
+    mapBG hwGraph c_bagel
+    )
+add_dependencies(map2bg
+    mapBG hwGraph c_bagel
+    )
 
 # add custom targets (symlinks)
 add_custom_target(bg2dict-lazy-symlink ALL
@@ -86,6 +95,9 @@ add_custom_target(fill-template-lazy-symlink ALL
 add_custom_target(sw2hw-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/sw2hw ${CMAKE_SOURCE_DIR}/sw2hw
     DEPENDS sw2hw)
+add_custom_target(map2bg-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map2bg ${CMAKE_SOURCE_DIR}/map2bg
+    DEPENDS map2bg)
 # and clean them up
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg2dict")
@@ -93,3 +105,5 @@ set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/fill-template")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/sw2hw")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map2bg")
