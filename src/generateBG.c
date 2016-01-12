@@ -99,19 +99,24 @@ int main (int argc, char *argv[])
     printf("Behavior Graph to Dictionary Generator\n");
 
     sprintf(name, "noname");
-    while ((opt = getopt(argc, argv, "hnl:")) != -1)
+    while ((opt = getopt(argc, argv, "hn:l:")) != -1)
     {
         switch (opt)
         {
             case 'l':
                 for (i = 0; i < FLAVOURS; ++i)
+                {
                     if (strcmp(optarg, flavourStr[i]) == 0)
-                        flavour = i;
-                    if (i == FLAVOURS)
                     {
-                        fprintf(stderr, "Unknown flavour %s. Use C or VHDL\n", optarg);
-                        exit(EXIT_FAILURE);
+                        flavour = i;
+                        break;
                     }
+                }
+                if (i == FLAVOURS)
+                {
+                    fprintf(stderr, "Unknown flavour %s. Use C or VHDL\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 'n':
                 snprintf(name, 256, "%s", optarg);
