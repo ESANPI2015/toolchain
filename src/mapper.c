@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
         {
             case 'h':
             default:
-                fprintf(stderr, "Usage: %s hw_spec sw_spec outfile\n", argv[0]);
+                fprintf(stderr, "Usage: %s hw-spec sw-spec map-file\n", argv[0]);
                 exit(EXIT_FAILURE);
                 break;
         }
@@ -34,7 +34,7 @@ int main (int argc, char *argv[])
 
     if ((optind >= argc) || (argc < 4))
     {
-        fprintf(stderr, "Usage: %s hw_spec sw_spec outfile\n", argv[0]);
+        fprintf(stderr, "Usage: %s hw-spec sw-spec map-file\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     snprintf(hwYamlFile, HWG_MAX_STRING_LENGTH, "%s", argv[optind]);

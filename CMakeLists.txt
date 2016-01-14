@@ -48,13 +48,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # add the executables
-add_executable(bg2dict
+add_executable(bg-generate
     src/generateBG.c
     )
-target_link_libraries(bg2dict
+target_link_libraries(bg-generate
     genBG c_bagel
     )
-add_dependencies(bg2dict
+add_dependencies(bg-generate
     genBG c_bagel
     )
 add_executable(fill-template
@@ -66,44 +66,72 @@ target_link_libraries(fill-template
 add_dependencies(fill-template
     genBG
     )
-add_executable(sw2hw
+add_executable(map
     src/mapper.c
     )
-target_link_libraries(sw2hw
+target_link_libraries(map
     mapBG hwGraph c_bagel
     )
-add_dependencies(sw2hw
+add_dependencies(map
     mapBG hwGraph c_bagel
     )
-add_executable(map2bg
+add_executable(map-transform
     src/generateBGFromMapping.c
     )
-target_link_libraries(map2bg
+target_link_libraries(map-transform
     mapBG hwGraph c_bagel
     )
-add_dependencies(map2bg
+add_dependencies(map-transform
     mapBG hwGraph c_bagel
+    )
+add_executable(deploy
+    src/deployer.c
+    )
+target_link_libraries(deploy
+    mapBG hwGraph c_bagel
+    )
+add_dependencies(deploy
+    mapBG hwGraph c_bagel
+    )
+add_executable(map-route
+    src/generateRoutingInfo.c
+    )
+target_link_libraries(map-route
+    mapBG hwGraph c_bagel genBG
+    )
+add_dependencies(map-route
+    mapBG hwGraph c_bagel genBG
     )
 
 # add custom targets (symlinks)
-add_custom_target(bg2dict-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg2dict ${CMAKE_SOURCE_DIR}/bg2dict
-    DEPENDS bg2dict)
+add_custom_target(bg-generate-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg-generate ${CMAKE_SOURCE_DIR}/bg-generate
+    DEPENDS bg-generate)
 add_custom_target(fill-template-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/fill-template ${CMAKE_SOURCE_DIR}/fill-template
     DEPENDS fill-template)
-add_custom_target(sw2hw-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/sw2hw ${CMAKE_SOURCE_DIR}/sw2hw
-    DEPENDS sw2hw)
-add_custom_target(map2bg-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map2bg ${CMAKE_SOURCE_DIR}/map2bg
-    DEPENDS map2bg)
+add_custom_target(map-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map ${CMAKE_SOURCE_DIR}/map
+    DEPENDS map)
+add_custom_target(map-transform-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map-transform ${CMAKE_SOURCE_DIR}/map-transform
+    DEPENDS map-transform)
+add_custom_target(deploy-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/deploy ${CMAKE_SOURCE_DIR}/deploy
+    DEPENDS deploy)
+add_custom_target(map-route-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map-route ${CMAKE_SOURCE_DIR}/map-route
+    DEPENDS map-route)
 # and clean them up
 set_directory_properties(PROPERTIES
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg2dict")
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg-generate")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/fill-template")
 set_directory_properties(PROPERTIES
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/sw2hw")
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map")
 set_directory_properties(PROPERTIES
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map2bg")
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map-transform")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/deploy")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map-route")

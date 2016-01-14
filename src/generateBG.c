@@ -98,7 +98,7 @@ int main (int argc, char *argv[])
 
     printf("Behavior Graph to Dictionary Generator\n");
 
-    sprintf(name, "noname");
+    name[0] = '\0';
     while ((opt = getopt(argc, argv, "hn:l:")) != -1)
     {
         switch (opt)
@@ -136,10 +136,9 @@ int main (int argc, char *argv[])
     }
 
     printf("Using flavour: \"%s\"\n", flavourStr[flavour]);
-    printf("Using graph name: \"%s\"\n", name);
 
     snprintf(yamlfile, 256, "%s", argv[optind]);
-    out = fopen(argv[optind+1], "w");
+    out = fopen(argv[optind+1], "a");
     if (!out)
     {
         perror("fopen");
@@ -149,6 +148,11 @@ int main (int argc, char *argv[])
     bg_initialize();
     bg_graph_alloc(&g, name);
     bg_graph_from_yaml_file(yamlfile, g);
+    if ((strlen(g->name) > 0) && (strlen(name) < 1))
+        strncpy(name, g->name, bg_MAX_STRING_LENGTH);
+    if (strlen(name) < 1)
+        sprintf(name, "noname");
+    printf("Using graph name: \"%s\"\n", name);
     generate(out, g, name, flavour);
     bg_graph_free(g);
     bg_terminate();

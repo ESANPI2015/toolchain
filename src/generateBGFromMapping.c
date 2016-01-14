@@ -12,19 +12,23 @@ int main (int argc, char *argv[])
     sw2hw_map_t mapping, transformed;
     bg_graph_t *sub;
     bg_node_t *node;
+    hw_node_t *target;
     bg_node_list_iterator_t it;
     char mapFileName[SW2HW_MAX_STRING_LENGTH];
     char outFileName[SW2HW_MAX_STRING_LENGTH];
     char prefix[bg_MAX_STRING_LENGTH];
+    char suffix[bg_MAX_STRING_LENGTH];
     char fileName[bg_MAX_STRING_LENGTH];
+    bool hasPrefix = false;
 
-    printf("Mapping to Behaviour Graph(s)\n");
+    printf("Mapping to Distributed Behaviour Graph(s)\n");
     while ((opt = getopt(argc, argv, "hp:")) != -1)
     {
         switch (opt)
         {
             case 'p':
                 snprintf(prefix, bg_MAX_STRING_LENGTH, "%s", optarg);
+                hasPrefix = true;
                 break;
             case 'h':
             default:
@@ -61,11 +65,24 @@ int main (int argc, char *argv[])
             node = bg_node_list_next(&it))
     {
         sub = ((subgraph_data_t *)node->_priv_data)->subgraph;
+        target = hw_graph_get_node(transformed.hwGraph, node->id);
+        if (target->type == HW_NODE_TYPE_FPGA)
+            sprintf(suffix, "-vhdl");
+        else
+            sprintf(suffix, "-c");
         /*Ensure that file and node name are the same ... otherwise we loose correspondence*/
-        snprintf(fileName, bg_MAX_STRING_LENGTH, "%s_%s.bg", prefix, node->name);
+        if (hasPrefix)
+            snprintf(fileName, bg_MAX_STRING_LENGTH, "%s%s%s.bsg", prefix, node->name, suffix);
+        else
+            snprintf(fileName, bg_MAX_STRING_LENGTH, "%s%s.bsg", node->name, suffix);
         snprintf((char *)sub->name, bg_MAX_STRING_LENGTH, "%s", fileName);
         bg_graph_to_yaml_file(fileName, ((subgraph_data_t *)node->_priv_data)->subgraph);
     }
+    if (hasPrefix)
+        snprintf(fileName, bg_MAX_STRING_LENGTH, "%s%s.btg", prefix, transformed.swGraph->name);
+    else
+        snprintf(fileName, bg_MAX_STRING_LENGTH, "%s.btg", transformed.swGraph->name);
+    bg_graph_to_yaml_file(fileName, transformed.swGraph);
     sw2hw_map_to_yaml_file(outFileName, &transformed);
 
     /*Deinit*/
