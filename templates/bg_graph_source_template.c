@@ -2,7 +2,7 @@
  * *** DO NOT MODIFY ***
  */
 
-#include "<name>.h"
+#include "<name>_graph.h"
 #include <math.h>
 
 /*
@@ -10,7 +10,7 @@
  * contains edge weights
  * NOTE: This will be in ROM!
  */
-const <type> edgeWeight[<name>_NO_EDGES] =
+const <type> edgeWeight[<name>_GRAPH_NO_EDGES] =
 {
     /*
      * FORMAT:
@@ -24,12 +24,12 @@ const <type> edgeWeight[<name>_NO_EDGES] =
  * contains current edge values
  * NOTE: This is the only stuff held in RAM!
  */
-static <type> edgeValue[<name>_NO_EDGES] = {0.f};
+static <type> edgeValue[<name>_GRAPH_NO_EDGES] = {0.f};
 
 /*
  * FUNCTION REGION
  */
-int <name>_evaluate (const <type> in[<name>_NO_INPUTS], <type> out[<name>_NO_OUTPUTS])
+int <name>_graph_evaluate (const <type> in[<name>_GRAPH_NO_INPUTS], <type> out[<name>_GRAPH_NO_OUTPUTS])
 {
     <type> result;
     <type> merge[3];
