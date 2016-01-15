@@ -14,6 +14,7 @@ int main (int argc, char *argv[])
     char mapFileName[SW2HW_MAX_STRING_LENGTH];
     char targetName[SW2HW_MAX_STRING_LENGTH];
     char outFileName[SW2HW_MAX_STRING_LENGTH];
+    char temp[SW2HW_MAX_STRING_LENGTH];
     unsigned int input, output;
     FILE *dictionary;
     dictEntry dict;
@@ -79,51 +80,60 @@ int main (int argc, char *argv[])
         }
         for (input = 0; input < node->input_port_cnt; input++)
         {        
+            sprintf(temp, ",\n");
+            if (input == node->input_port_cnt - 1)
+                sprintf(temp, " ");
             if (node->input_ports[input]->num_edges != 1)
             {
                 sprintf(dict.token, "<input2srcId%u>", input);
-                sprintf(dict.repl, "%u,\n<input2srcId%u>", (unsigned int)node->id, input+1);
+                sprintf(dict.repl, "<myId>%s<input2srcId%u>", temp, input+1);
                 writeDictionary(dictionary, &dict);
                 sprintf(dict.token, "<input2srcIdx%u>", input);
-                sprintf(dict.repl, "%u,\n<input2srcIdx%u>", input, input+1);
+                sprintf(dict.repl, "%u%s<input2srcIdx%u>", input, temp, input+1);
                 writeDictionary(dictionary, &dict);
             } else {
                 sprintf(dict.token, "<input2srcId%u>", input);
-                sprintf(dict.repl, "%u,\n<input2srcId%u>", (unsigned int)node->input_ports[input]->edges[0]->source_node->id, input+1);
+                sprintf(dict.repl, "%u%s<input2srcId%u>", (unsigned int)node->input_ports[input]->edges[0]->source_node->id, temp, input+1);
                 writeDictionary(dictionary, &dict);
                 sprintf(dict.token, "<input2srcIdx%u>", input);
-                sprintf(dict.repl, "%u,\n<input2srcIdx%u>", (unsigned int)node->input_ports[input]->edges[0]->source_port_idx, input+1);
+                sprintf(dict.repl, "%u%s<input2srcIdx%u>", (unsigned int)node->input_ports[input]->edges[0]->source_port_idx, temp, input+1);
                 writeDictionary(dictionary, &dict);
             }
         }
-        sprintf(dict.repl, "\b\b");
+        sprintf(dict.repl, " ");
         sprintf(dict.token, "<input2srcId%u>", input);
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<input2srcIdx%u>", input);
         writeDictionary(dictionary, &dict);
         for (output = 0; output < node->output_port_cnt; output++)
         {        
+            sprintf(temp, ",\n");
+            if (output == node->output_port_cnt - 1)
+                sprintf(temp, " ");
             if (node->output_ports[output]->num_edges != 1)
             {
                 sprintf(dict.token, "<output2sinkId%u>", output);
-                sprintf(dict.repl, "%u,\n<output2sinkId%u>", (unsigned int)node->id, output+1);
+                sprintf(dict.repl, "<myId>%s<output2sinkId%u>", temp, output+1);
                 writeDictionary(dictionary, &dict);
                 sprintf(dict.token, "<output2sinkIdx%u>", output);
-                sprintf(dict.repl, "%u,\n<output2sinkIdx%u>", output, output+1);
+                sprintf(dict.repl, "%u%s<output2sinkIdx%u>", output, temp, output+1);
                 writeDictionary(dictionary, &dict);
             } else {
                 sprintf(dict.token, "<output2sinkId%u>", output);
-                sprintf(dict.repl, "%u,\n<output2sinkId%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_node->id, output+1);
+                sprintf(dict.repl, "%u%s<output2sinkId%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_node->id, temp, output+1);
                 writeDictionary(dictionary, &dict);
                 sprintf(dict.token, "<output2sinkIdx%u>", output);
-                sprintf(dict.repl, "%u,\n<output2sinkIdx%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_port_idx, output+1);
+                sprintf(dict.repl, "%u%s<output2sinkIdx%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_port_idx, temp, output+1);
                 writeDictionary(dictionary, &dict);
             }
         }
-        sprintf(dict.repl, "\b\b");
+        sprintf(dict.repl, " ");
         sprintf(dict.token, "<output2sinkId%u>", output);
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<output2sinkIdx%u>", output);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<myId>");
+        sprintf(dict.repl, "%u", (unsigned int)node->id);
         writeDictionary(dictionary, &dict);
         fclose(dictionary);
     }
