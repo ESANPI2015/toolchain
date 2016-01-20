@@ -179,7 +179,7 @@ int main (int argc, char *argv[])
         /*Fire at will :D*/
         if (!trigger) {
             /*Look if there is data: USE THE FAIR METHOD!*/
-            ndlcomBridgeProcessFair(&bridge);
+            ndlcomBridgeProcessOnce(&bridge);
             /*If we had been blocked we want to resample the internal inputs*/
             continue;
         }
