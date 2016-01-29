@@ -12,6 +12,7 @@ int defaultCost(sw2hw_map_t *map, unsigned int hwId, unsigned int swId)
 
 int main (int argc, char *argv[])
 {
+    sw2hw_error err = SW2HW_ERR_NONE;
     int opt;
     char hwYamlFile[HWG_MAX_STRING_LENGTH];
     char swYamlFile[bg_MAX_STRING_LENGTH];
@@ -48,10 +49,18 @@ int main (int argc, char *argv[])
     bg_graph_from_yaml_file(swYamlFile, mapping.swGraph);
     hw_graph_from_yaml_file(hwYamlFile, mapping.hwGraph);
     /*Mapping*/
-    sw2hw_map_match(&mapping);
-    sw2hw_map_initial(&mapping, defaultCost);
+    printf("Matching by name\n");
+    if ((err = sw2hw_map_match(&mapping)) != SW2HW_ERR_NONE)
+        fprintf(stderr, "Warning: No matching found (%u)\n", (unsigned int)err);
+    printf("Greedy matching\n");
+    if ((err = sw2hw_map_initial(&mapping, defaultCost)) != SW2HW_ERR_NONE) {
+        fprintf(stderr, "Error: Could not find initial mapping (%u)\n", (unsigned int)err);
+        exit(EXIT_FAILURE);
+    }
     do {
-        while (sw2hw_map_refine(&mapping, defaultCost) == SW2HW_ERR_NONE);
+        printf("Refining ");
+        while (sw2hw_map_refine(&mapping, defaultCost) == SW2HW_ERR_NONE) printf(".");
+        printf("\nRegrouping\n");
     } while (sw2hw_map_regroup(&mapping, defaultCost) == SW2HW_ERR_NONE);
     /*Storing*/
     sw2hw_map_to_yaml_file(outfileName, &mapping);
