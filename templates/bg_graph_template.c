@@ -20,19 +20,20 @@ const <type> edgeWeight[<name>_GRAPH_NO_EDGES] =
 };
 
 /*
- * STATIC REGION:
- * contains current edge values
- * NOTE: This is the only stuff held in RAM!
- */
-static <type> edgeValue[<name>_GRAPH_NO_EDGES] = {0.f};
-
-/*
  * FUNCTION REGION
  */
-int <name>_graph_evaluate (const <type> in[<name>_GRAPH_NO_INPUTS], <type> out[<name>_GRAPH_NO_OUTPUTS])
+void <name>_graph_init(<name>_graph_t *graph)
+{
+    unsigned i;
+    for (i = 0; i < <name>_GRAPH_NO_EDGES; ++i)
+        graph->edgeValue[i] = 0.0f;
+}
+
+int <name>_graph_evaluate (<name>_graph_t *graph, const <type> in[<name>_GRAPH_NO_INPUTS], <type> out[<name>_GRAPH_NO_OUTPUTS])
 {
     <type> result;
     <type> merge[3];
+    <type> *edgeValue = graph->edgeValue;
 
 <code0>
 

@@ -1,4 +1,13 @@
 /*
+ * Toplvl template:
+ * * Based on unreliable, lossy NDLCom
+ * * Handles internal inputs/outputs
+ * * Uses UDP to connect with a NDLCom Bridge (others could be possible too)
+ * * Assumptions: 
+ *   * A packet loss is improbable
+ *   * Being in phase is more important than having correct values
+ *   * Deadlocks have to be avoided
+ *
  * NOTE: This template is not finished yet because it is target-dependent
  * Long-term vision:
  * * Provide the ndlcomBGDataHandler or ndlcomNodeRegisterBGDataHandler
@@ -18,7 +27,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-static <type> in[<name>_GRAPH_NO_INPUTS] = { 0.0f };
+#define MAX_NO_UPDATES 2
+
+static <type> in[MAX_NO_UPDATES][<name>_GRAPH_NO_INPUTS] = { {0.0f} };
 static <type> out[<name>_GRAPH_NO_OUTPUTS] = { 0.0f };
 
 static const uint8_t input2senderId[<name>_GRAPH_NO_INPUTS] = {
@@ -33,6 +44,7 @@ static const uint8_t output2receiverId[<name>_GRAPH_NO_OUTPUTS] = {
 static const uint8_t output2sinkIdx[<name>_GRAPH_NO_OUTPUTS] = {
     <output2sinkIdx0>
 };
+/*TODO: Initialize this to 1 when a backedge has been detected as incoming*/
 static uint8_t numUpdates[<name>_GRAPH_NO_INPUTS] = { 0 };
 
 /*NOTE: These are communication dependent entities*/
@@ -41,6 +53,7 @@ static struct NDLComNode node;
 static struct NDLComInternalHandler handler;
 static struct NDLComExternalInterface interface;
 
+/*NOTE: This is target dependent code!*/
 struct myContext
 {
     int fd;
@@ -50,16 +63,14 @@ struct myContext
 <type> sample(const unsigned int input)
 {
     /*NOTE: This is target dependent code!*/
-    /*IMPLEMENT ME*/
-    printf("<name>: sampling internal data source %u\n", input);
+    /*printf("<name>: sampling internal data source %u\n", input);*/
     return 0.0f;
 }
 
 void commit(const unsigned int output, const <type> value)
 {
     /*NOTE: This is target dependent code!*/
-    /*IMPLEMENT ME*/
-    printf("<name>: committing %f to internal data sink %u\n", value, output);
+    /*printf("<name>: committing %f to internal data sink %u\n", value, output);*/
 }
 
 size_t readBuf (void *context, void *buf, const size_t count)
@@ -96,8 +107,7 @@ void on_incoming_packet(void *context, const struct NDLComHeader *header, const 
     if (header->mDataLen != sizeof(struct BGData))
         return;
     /*Find input to be updated and ignore internal inputs*/
-    for (input = 0; input < <name>_GRAPH_NO_INPUTS; ++input)
-    {
+    for (input = 0; input < <name>_GRAPH_NO_INPUTS; ++input) {
         if (input2senderId[input] == <myId>)
             continue;
         if (input2srcIdx[input] == incoming->input)
@@ -106,26 +116,118 @@ void on_incoming_packet(void *context, const struct NDLComHeader *header, const 
     /*If not found, return*/
     if (input == <name>_GRAPH_NO_INPUTS)
         return;
-    /*Update value*/
-    in[input] = incoming->value;
-    numUpdates[input]++;
+
+    /*Update value: We have a queue per input in order to handle multiple updates in a timely order at least*/
+    if (numUpdates[input] < MAX_NO_UPDATES) {
+        in[numUpdates[input]][input] = incoming->value;
+        numUpdates[input]++;
+    }
+}
+
+void resampleInputs()
+{
+    unsigned int i;
+
+    /*Resample all internal inputs iff they have been consumed before (otherwise we would miss samples)*/
+    for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
+        if ((input2senderId[i] == <myId>) && (numUpdates[i] == 0)) {
+            /*Resample*/
+            in[0][i] = sample(i);
+            numUpdates[i] = 1;
+        }
+    }
+}
+
+uint8_t canFire()
+{
+    uint8_t trigger = 1;
+    unsigned int i;
+
+    /*Check if we should fire:
+     * The idea:
+     * * Iff all inputs have seen an update we evaluate and produce new output
+     * * Iff we have seen multiple updates, we evaluate as well (using last known values of possibly missing input updates)
+     *   a) prevent dead-locks
+     *   b) be always in sync even in case of packet loss
+     *   c) upsample slower sources with respect to the source with maximum rate
+     * * In all other cases, we have to wait */
+    for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
+        if (numUpdates[i] > MAX_NO_UPDATES/2) {
+            /*Multiple updates*/
+            break;
+        }
+        if (numUpdates[i] < 1) {
+            /*Missing update*/
+            trigger = 0;
+            break;
+        }
+    }
+
+    return trigger;
+}
+
+void consumeInputs()
+{
+    unsigned int i,j;
+
+    /*For all values:
+     * * If numUpdates > 1: Remove oldest and update 'queue'. Decrease numUpdates by one
+     * * If numUpdates = 1: Decrease numUpdates by one
+     * * If numUpdates < 1: Do nothing*/
+    for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
+        /*Skip missing updates*/
+        if (numUpdates[i] < 1)
+            continue;
+        /*Update 'queue'*/
+        for (j = 0; j < numUpdates[i]-1; ++j)
+            in[j][i] = in[j+1][i];
+        /*Decrease numUpdates*/
+        numUpdates[i]--;
+    }
+}
+
+void produceOutputs()
+{
+    struct BGData response;
+    unsigned int i;
+
+    /*Commit all new internal output values or transmit to other graphs*/
+    response.mBase.mId = REPRESENTATIONS_REPRESENTATION_ID_BGData;
+    for (i = 0; i < <name>_GRAPH_NO_OUTPUTS; ++i) {
+        if (output2receiverId[i] == <myId>) {
+            /*Update internal output*/
+            commit(i, out[i]);
+        } else {
+            /*Update external output*/
+            response.output = i;
+            response.input = output2sinkIdx[i];
+            response.value = out[i];
+            ndlcomNodeSend(&node,output2receiverId[i], &response, sizeof(response));
+        }
+    }
 }
 
 int main (int argc, char *argv[])
 {
-    struct BGData response;
     struct myContext context;
     struct sockaddr_in addr_in;
     uint16_t in_port, out_port;
-    unsigned int i, trigger;
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s in-port out-port\n", argv[0]);
+    char ip_addr[16];
+
+    /*NOTE: This is target dependent code!*/
+    if (argc < 4) {
+        fprintf(stderr, "Usage: %s ip-addr in-port out-port\n", argv[0]);
         return 1;
     }
-    in_port = atoi(argv[1]);
-    out_port = atoi(argv[2]);
+    snprintf(ip_addr, 16, "%s", argv[1]);
+    ip_addr[15] = '\0';
+    in_port = atoi(argv[2]);
+    out_port = atoi(argv[3]);
     /*Create UDP socket: We cannot block because the BridgeProcess can be overrun with data :(*/
-    context.fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if ((context.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        fprintf(stderr, "Could not create socket\n");
+        return 1;
+    }
     memset(&addr_in, 0, sizeof(addr_in));
     memset(&context.addr_out, 0, sizeof(context.addr_out));
     addr_in.sin_family = AF_INET;
@@ -133,9 +235,16 @@ int main (int argc, char *argv[])
     addr_in.sin_port = htons(in_port);
     context.addr_out.sin_port = htons(out_port);
     addr_in.sin_addr.s_addr = htonl(INADDR_ANY);
-    inet_aton("127.0.0.1", &context.addr_out.sin_addr);
-    bind(context.fd, (struct sockaddr *)&addr_in, sizeof(addr_in));
+    if (inet_aton(ip_addr, &context.addr_out.sin_addr) == 0) {
+        fprintf(stderr, "%s is an invalid IP address\n", ip_addr);
+        return 1;
+    }
+    if (bind(context.fd, (struct sockaddr *)&addr_in, sizeof(addr_in)) < 0) {
+        fprintf(stderr, "Could not bind to socket\n");
+        return 1;
+    }
 
+    /*NOTE: This is communication dependent code*/
     /*INIT*/
     ndlcomBridgeInit(&bridge);
     ndlcomNodeInit(&node, &bridge, <myId>);
@@ -143,67 +252,32 @@ int main (int argc, char *argv[])
     ndlcomNodeRegisterInternalHandler(&node, &handler);
     ndlcomExternalInterfaceInit(&interface, writeBuf, readBuf, 0, &context);
     ndlcomBridgeRegisterExternalInterface(&bridge, &interface);
-    response.mBase.mId = REPRESENTATIONS_REPRESENTATION_ID_BGData;
 
     /*LOOP*/
     printf("<name>: execution started\n");
+
+    /*First sampling of all internal inputs*/
+    resampleInputs();
+
     while (1) {
-        /*Sample all internal inputs and mark them as available*/
-        for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
-            if (input2senderId[i] == <myId>) {
-                in[i] = sample(i);
-                numUpdates[i] = 1;
-            }
-        }
-
-        /*Check if we should fire:
-         * The idea:
-         * * Iff all inputs have seen an update we evaluate and produce new output
-         * * If a packet has been lost such that we received a double update, we trigger to
-         *   a) prevent dead-locks
-         *   b) be always in sync even in case of packet loss
-         * * In all other cases, we have to wait */
-        trigger = 1;
-        for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
-            if (numUpdates[i] > 1) {
-                /*Double update*/
-                break;
-            }
-            if (numUpdates[i] < 1) {
-                /*Missing update*/
-                trigger = 0;
-                break;
-            }
-        }
-
         /*Fire at will :D*/
-        if (!trigger) {
-            /*Look if there is data: USE THE FAIR METHOD!*/
+        if (!canFire()) {
+            /*Look if there is new data*/
             ndlcomBridgeProcessOnce(&bridge);
-            /*If we had been blocked we want to resample the internal inputs*/
             continue;
         }
 
-        /*Decrease number of updates if not zero*/
-        for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i) {
-            if (numUpdates[i] > 0) {
-                numUpdates[i]--;
-            }
-        }
-
         /*Evaluate*/
-        <name>_graph_evaluate(in,out);
+        <name>_graph_evaluate(in[0],out);
 
-        /*Commit all new internal output values or transmit to other graphs*/
-        for (i = 0; i < <name>_GRAPH_NO_OUTPUTS; ++i)
-            if (output2receiverId[i] == <myId>) {
-                commit(i, out[i]);
-            } else {
-                response.output = i;
-                response.input = output2sinkIdx[i];
-                response.value = out[i];
-                ndlcomNodeSend(&node,output2receiverId[i], &response, sizeof(response));
-            }
+        /*Consume the used inputs*/
+        consumeInputs();
+
+        /*Update all internal and external outputs*/
+        produceOutputs();
+
+        /*Resample all internal inputs*/
+        resampleInputs();
     }
 
     /*DEINIT*/
