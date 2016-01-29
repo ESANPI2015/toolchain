@@ -3,8 +3,13 @@
 
 #include "<name>_graph.h"
 #include "ndlcom/Node.h"
+#include <stdbool.h>
 
 #define <name>_DEVICE_ID <myId>
+#define <name>_NO_INTERNAL_INPUTS <numInternalInputs>
+#define <name>_NO_EXTERNAL_INPUTS <numExternalInputs>
+#define <name>_NO_INTERNAL_OUTPUTS <numInternalOutputs>
+#define <name>_NO_EXTERNAL_OUTPUTS <numExternalOutputs>
 
 typedef <type> (*<name>_getInternalInputFunc)(const unsigned int);
 typedef void (*<name>_setInternalOutputFunc)(const unsigned int, const <type>);
@@ -15,7 +20,7 @@ typedef struct {
     <type> out[<name>_GRAPH_NO_OUTPUTS];
     <name>_graph_t graph;
     /*NDLCOM*/
-    uint8_t numUpdates[<name>_GRAPH_NO_INPUTS];
+    bool gotUpdate[<name>_NO_EXTERNAL_INPUTS];
     struct NDLComInternalHandler handler;
     struct NDLComNode *node;
     /*Internal I/O functions*/

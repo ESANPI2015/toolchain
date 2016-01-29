@@ -1,6 +1,7 @@
 #include "sw_to_hw_map.h"
 #include "sw_to_hw_map_yaml.h"
 #include "bg_graph.h"
+#include "node_list.h"
 #include "node_types/bg_node_subgraph.h"
 #include "template_engine.h"
 #include <stdio.h>
@@ -14,14 +15,19 @@ int main (int argc, char *argv[])
     char mapFileName[SW2HW_MAX_STRING_LENGTH];
     char targetName[SW2HW_MAX_STRING_LENGTH];
     char outFileName[SW2HW_MAX_STRING_LENGTH];
-    char temp[SW2HW_MAX_STRING_LENGTH];
     unsigned int input, output;
     FILE *dictionary;
     dictEntry dict;
     sw2hw_map_entry_t *entry;
-    bg_node_t *node;
+    bg_node_t *node, *source;
     hw_node_t *target;
     priority_list_iterator_t it;
+    bg_node_list_iterator_t it2;
+    bool isBackedge;
+    unsigned int numInternalInputs = 0;
+    unsigned int numExternalInputs = 0;
+    unsigned int numInternalOutputs = 0;
+    unsigned int numExternalOutputs = 0;
 
     printf("Extract routing information from mapping\n");
     while ((opt = getopt(argc, argv, "h")) != -1)
@@ -62,6 +68,9 @@ int main (int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    /*Determine evaluation order to detect backedges*/
+    determine_evaluation_order(mapping.swGraph);
+
     /*Cycle through all assignments*/
     for (entry = priority_list_first(mapping.assignments, &it);
             entry;
@@ -78,59 +87,109 @@ int main (int argc, char *argv[])
             perror("fopen");
             exit(EXIT_FAILURE);
         }
+
+        /*Handle all inputs*/
         for (input = 0; input < node->input_port_cnt; input++)
         {        
-            sprintf(temp, ",\n");
-            if (input == node->input_port_cnt - 1)
-                sprintf(temp, " ");
             if (node->input_ports[input]->num_edges != 1)
             {
-                sprintf(dict.token, "<input2srcId%u>", input);
-                sprintf(dict.repl, "<myId>%s<input2srcId%u>", temp, input+1);
+                /*Internal input*/
+                sprintf(dict.token, "<internalInputSinkIdx%u>", numInternalInputs);
+                sprintf(dict.repl, "%u,<internalInputSinkIdx%u>", input, numInternalInputs+1);
                 writeDictionary(dictionary, &dict);
-                sprintf(dict.token, "<input2srcIdx%u>", input);
-                sprintf(dict.repl, "%u%s<input2srcIdx%u>", input, temp, input+1);
-                writeDictionary(dictionary, &dict);
+                numInternalInputs++;
             } else {
-                sprintf(dict.token, "<input2srcId%u>", input);
-                sprintf(dict.repl, "%u%s<input2srcId%u>", (unsigned int)node->input_ports[input]->edges[0]->source_node->id, temp, input+1);
+                /*External input*/
+                sprintf(dict.token, "<externalInputSrcId%u>", numExternalInputs);
+                sprintf(dict.repl, "%u,<externalInputSrcId%u>", (unsigned int)node->input_ports[input]->edges[0]->source_node->id, numExternalInputs+1);
                 writeDictionary(dictionary, &dict);
-                sprintf(dict.token, "<input2srcIdx%u>", input);
-                sprintf(dict.repl, "%u%s<input2srcIdx%u>", (unsigned int)node->input_ports[input]->edges[0]->source_port_idx, temp, input+1);
+                sprintf(dict.token, "<externalInputSrcIdx%u>", numExternalInputs);
+                sprintf(dict.repl, "%u,<externalInputSrcIdx%u>", (unsigned int)node->input_ports[input]->edges[0]->source_port_idx, numExternalInputs+1);
                 writeDictionary(dictionary, &dict);
+                sprintf(dict.token, "<externalInputSinkIdx%u>", numExternalInputs);
+                sprintf(dict.repl, "%u,<externalInputSinkIdx%u>", input, numExternalInputs+1);
+                writeDictionary(dictionary, &dict);
+
+                isBackedge = true;
+                /*Check source node evaluation order*/
+                for (source = bg_node_list_first(mapping.swGraph->evaluation_order, &it2);
+                        source && (source != node);
+                        source = bg_node_list_next(&it2))
+                    /*If the source is to be evaluated BEFORE the current node, the edge is NO BACKEDGE*/
+                    if (source == node->input_ports[input]->edges[0]->source_node) {
+                        isBackedge = false;
+                        break;
+                    }
+                sprintf(dict.token, "<externalInputHasBackedge%u>", numExternalInputs);
+                if (isBackedge)
+                    sprintf(dict.repl, "%s,<externalInputHasBackedge%u>", "true", numExternalInputs+1);
+                else
+                    sprintf(dict.repl, "%s,<externalInputHasBackedge%u>", "false", numExternalInputs+1);
+                writeDictionary(dictionary, &dict);
+                numExternalInputs++;
             }
         }
-        sprintf(dict.repl, " ");
-        sprintf(dict.token, "<input2srcId%u>", input);
+        /*Finalize with sentinels*/
+        sprintf(dict.repl, "0");
+        sprintf(dict.token, "<externalInputSrcId%u>", numExternalInputs);
         writeDictionary(dictionary, &dict);
-        sprintf(dict.token, "<input2srcIdx%u>", input);
+        sprintf(dict.token, "<externalInputSrcIdx%u>", numExternalInputs);
         writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<externalInputSinkIdx%u>", numExternalInputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<internalInputSinkIdx%u>", numInternalInputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.repl, "false");
+        sprintf(dict.token, "<externalInputHasBackedge%u>", numExternalInputs);
+        writeDictionary(dictionary, &dict);
+
+        /*Handle all outputs*/
         for (output = 0; output < node->output_port_cnt; output++)
         {        
-            sprintf(temp, ",\n");
-            if (output == node->output_port_cnt - 1)
-                sprintf(temp, " ");
             if (node->output_ports[output]->num_edges != 1)
             {
-                sprintf(dict.token, "<output2sinkId%u>", output);
-                sprintf(dict.repl, "<myId>%s<output2sinkId%u>", temp, output+1);
+                /*Internal output*/
+                sprintf(dict.token, "<internalOutputSrcIdx%u>", numInternalOutputs);
+                sprintf(dict.repl, "%u,<internalOutputSrcIdx%u>", output, numInternalOutputs+1);
                 writeDictionary(dictionary, &dict);
-                sprintf(dict.token, "<output2sinkIdx%u>", output);
-                sprintf(dict.repl, "%u%s<output2sinkIdx%u>", output, temp, output+1);
-                writeDictionary(dictionary, &dict);
+                numInternalOutputs++;
             } else {
-                sprintf(dict.token, "<output2sinkId%u>", output);
-                sprintf(dict.repl, "%u%s<output2sinkId%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_node->id, temp, output+1);
+                /*External output*/
+                sprintf(dict.token, "<externalOutputSinkId%u>", numExternalOutputs);
+                sprintf(dict.repl, "%u,<externalOutputSinkId%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_node->id, numExternalOutputs+1);
                 writeDictionary(dictionary, &dict);
-                sprintf(dict.token, "<output2sinkIdx%u>", output);
-                sprintf(dict.repl, "%u%s<output2sinkIdx%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_port_idx, temp, output+1);
+                sprintf(dict.token, "<externalOutputSinkIdx%u>", numExternalOutputs);
+                sprintf(dict.repl, "%u,<externalOutputSinkIdx%u>", (unsigned int)node->output_ports[output]->edges[0]->sink_port_idx, numExternalOutputs+1);
                 writeDictionary(dictionary, &dict);
+                sprintf(dict.token, "<externalOutputSrcIdx%u>", numExternalOutputs);
+                sprintf(dict.repl, "%u,<externalOutputSrcIdx%u>", output, numExternalOutputs+1);
+                writeDictionary(dictionary, &dict);
+                numExternalOutputs++;
             }
         }
-        sprintf(dict.repl, " ");
-        sprintf(dict.token, "<output2sinkId%u>", output);
+        /*Finalize with sentinels*/
+        sprintf(dict.repl, "0");
+        sprintf(dict.token, "<externalOutputSinkId%u>", numExternalOutputs);
         writeDictionary(dictionary, &dict);
-        sprintf(dict.token, "<output2sinkIdx%u>", output);
+        sprintf(dict.token, "<externalOutputSinkIdx%u>", numExternalOutputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<externalOutputSrcIdx%u>", numExternalOutputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<internalOutputSrcIdx%u>", numInternalOutputs);
+        writeDictionary(dictionary, &dict);
+
+        /*Finalize*/
+        sprintf(dict.token, "<numInternalInputs>");
+        sprintf(dict.repl, "%u", numInternalInputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<numExternalInputs>");
+        sprintf(dict.repl, "%u", numExternalInputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<numInternalOutputs>");
+        sprintf(dict.repl, "%u", numInternalOutputs);
+        writeDictionary(dictionary, &dict);
+        sprintf(dict.token, "<numExternalOutputs>");
+        sprintf(dict.repl, "%u", numExternalOutputs);
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<myId>");
         sprintf(dict.repl, "%u", (unsigned int)node->id);
