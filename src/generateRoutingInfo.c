@@ -196,7 +196,6 @@ int main (int argc, char *argv[])
         sprintf(dict.token, "<myId>");
         sprintf(dict.repl, "%u", (unsigned int)node->id);
         writeDictionary(dictionary, &dict);
-        fclose(dictionary);
     }
 
     /*Count the number of external interfaces*/
@@ -209,6 +208,7 @@ int main (int argc, char *argv[])
     sprintf(dict.token, "<numExternalInterfaces>");
     sprintf(dict.repl, "%u", numExternalInterfaces);
     writeDictionary(dictionary, &dict);
+    fclose(dictionary);
 
     /*Deinit*/
     sw2hw_map_destroy(&mapping);

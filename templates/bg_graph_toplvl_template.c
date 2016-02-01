@@ -1,14 +1,6 @@
 #include "<name>_comm.h"
 #include "ndlcom/Bridge.h"
 #include "ndlcom/Node.h"
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
 
 #define <name>_NO_EXTERNAL_INTERFACES <numExternalInterfaces>
 
@@ -36,7 +28,6 @@ size_t <name>_readExternalInput (void *context, void *buf, const size_t count)
     {
         /*Implement me*/
         default:
-            fprintf(stderr, "<name>_readExternalInput: Unknown interface\n");
             return 0;
     }
 }
@@ -48,7 +39,6 @@ void <name>_writeExternalOutput(void *context, const void *buf, const size_t cou
     {
         /*Implement me*/
         default:
-            fprintf(stderr, "<name>_writeExternalOutput: Unknown interface\n");
             return;
     }
 }
