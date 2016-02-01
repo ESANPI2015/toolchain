@@ -20,7 +20,7 @@ int main (int argc, char *argv[])
     dictEntry dict;
     sw2hw_map_entry_t *entry;
     bg_node_t *node, *source;
-    hw_node_t *target;
+    hw_node_t *target, *storedTarget;
     priority_list_iterator_t it;
     bg_node_list_iterator_t it2;
     bool isBackedge;
@@ -28,6 +28,7 @@ int main (int argc, char *argv[])
     unsigned int numExternalInputs = 0;
     unsigned int numInternalOutputs = 0;
     unsigned int numExternalOutputs = 0;
+    unsigned int numExternalInterfaces = 0;
 
     printf("Extract routing information from mapping\n");
     while ((opt = getopt(argc, argv, "h")) != -1)
@@ -80,6 +81,7 @@ int main (int argc, char *argv[])
         target = hw_graph_get_node(mapping.hwGraph, entry->hwId);
         if (strcmp(target->name, targetName) != 0)
             continue;
+        storedTarget = target;
 
         dictionary = fopen(outFileName, "a");
         if (!dictionary)
@@ -196,6 +198,17 @@ int main (int argc, char *argv[])
         writeDictionary(dictionary, &dict);
         fclose(dictionary);
     }
+
+    /*Count the number of external interfaces*/
+    for (i = 0; i < storedTarget->numPorts; ++i)
+    {
+        if (storedTarget->ports[i].type != HW_PORT_TYPE_NDLCOM)
+            continue;
+        numExternalInterfaces++;
+    }
+    sprintf(dict.token, "<numExternalInterfaces>");
+    sprintf(dict.repl, "%u", numExternalInterfaces);
+    writeDictionary(dictionary, &dict);
 
     /*Deinit*/
     sw2hw_map_destroy(&mapping);
