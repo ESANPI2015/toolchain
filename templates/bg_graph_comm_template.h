@@ -4,7 +4,7 @@
 #include "<name>_graph.h"
 #include "ndlcom/Node.h"
 
-#define <nam>_MAX_NO_UPDATES 2
+#define <name>_MAX_NO_UPDATES 2
 #define <name>_DEVICE_ID <myId>
 #define <name>_NO_INTERNAL_INPUTS <numInternalInputs>
 #define <name>_NO_EXTERNAL_INPUTS <numExternalInputs>
@@ -16,7 +16,7 @@ typedef void (*<name>_setInternalOutputFunc)(const unsigned int, const <type>);
 
 typedef struct {
     /*Behaviour Graph*/
-    <type> in[MAX_NO_UPDATES][<name>_GRAPH_NO_INPUTS];
+    <type> in[<name>_MAX_NO_UPDATES][<name>_GRAPH_NO_INPUTS];
     <type> out[<name>_GRAPH_NO_OUTPUTS];
     <name>_graph_t graph;
     /*NDLCOM*/
