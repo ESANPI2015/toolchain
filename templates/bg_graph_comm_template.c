@@ -1,7 +1,6 @@
 #include "<name>_comm.h"
 #include "representations/id.h"
 #include "representations/BGData.h"
-#include <stdbool.h>
 
 /*Internal Input Definitions*/
 static const uint8_t internalInputSinkIdx[<name>_NO_INTERNAL_INPUTS+1] = {
@@ -55,27 +54,22 @@ static void <name>_ndlcomBGDataHandler(void *context, const struct NDLComHeader 
     if (input == <name>_NO_EXTERNAL_INPUTS)
         return;
 
-    /*Update internal value iff it hasn't been updated yet*/
-    if (comm->numUpdates[input] < <name>_MAX_NO_UPDATES) {
-        comm->in[comm->numUpdates[input]][externalInputSinkIdx[input]] = incoming->value;
-        comm->numUpdates[input]++;
-    } else {
-        /*If we come up here, we have data loss!!!*/
-    }
+    /*Update internal value and set flag*/
+    comm->in[externalInputSinkIdx[input]] = incoming->value;
+    comm->gotUpdate[input] = true;
 }
 #endif
 
 /*This function registers handlers to the passed node to enable BG processing*/
 uint8_t <name>_init(<name>_comm_t *comm, struct NDLComNode *node, const <name>_getInternalInputFunc sample, const <name>_setInternalOutputFunc commit)
 {
-    unsigned int i,j;
+    unsigned int i;
     /*Reset inputs*/
-    for (i = 0; i < <name>_MAX_NO_UPDATES; ++i)
-        for (j = 0; j < <name>_GRAPH_NO_INPUTS; ++j)
-            comm->in[i][j] = 0;
+    for (i = 0; i < <name>_GRAPH_NO_INPUTS; ++i)
+        comm->in[i] = 0;
     /*Set initial number of updates*/
     for (i = 0; i < <name>_NO_EXTERNAL_INPUTS; ++i)
-        comm->numUpdates[i] = (externalInputHasBackedge[i]) ? 1 : 0;
+        comm->gotUpdate[i] = externalInputHasBackedge[i];
     /*Initialize graph*/
     <name>_graph_init(&comm->graph);
     /*Register handlers iff given*/
@@ -116,50 +110,28 @@ uint8_t <name>_process(<name>_comm_t *comm)
 
     response.mBase.mId = REPRESENTATIONS_REPRESENTATION_ID_BGData;
 
-    /*Check if we should fire:
-     * The idea:
-     * * Iff all inputs have seen an update we evaluate and produce new output
-     * * Iff we have seen multiple updates, we evaluate immediately to (using last known values of possibly missing input updates)
-     *   a) prevent dead-locks
-     *   b) be always in sync even in case of packet loss
-     *   c) upsample slower sources with respect to the source with maximum rate
-     * * In all other cases, we have to wait */
-
     /*Read all external inputs*/
     for (i = 0; i < <name>_NO_EXTERNAL_INPUTS; ++i) {
-        /*Trigger immediately iff
-         * a) sample rates of incoming values mismatch (upsampling)
-         * b) a input value has been lost during transmission*/
-        if (comm->numUpdates[i] > <name>_MAX_NO_UPDATES/2) {
-            trigger = 1;
+        /*Missing update: cannot fire*/
+        if (!comm->gotUpdate[i]) {
+            trigger = 0;
             break;
         }
-        /*Missing update
-         * a) reset trigger but keep checking other inputs*/
-        if (comm->numUpdates[i] < 1)
-            trigger = 0;
     }
     if (!trigger)
         return trigger;
 
     /*Read all internal inputs*/
     for (i = 0; i < <name>_NO_INTERNAL_INPUTS; ++i) {
-        comm->in[0][internalInputSinkIdx[i]] = comm->sample(i);
+        comm->in[internalInputSinkIdx[i]] = comm->sample(i);
     }
 
     /*Evaluate behaviour graph*/
-    <name>_graph_evaluate(&comm->graph,comm->in[0],comm->out);
+    <name>_graph_evaluate(&comm->graph,comm->in,comm->out);
 
-    /*Update queues (NOT THREAD SAFE!)*/
+    /*Reset all flags*/
     for (i = 0; i < <name>_NO_EXTERNAL_INPUTS; ++i) {
-        /*Skip missing updates*/
-        if (comm->numUpdates[i] < 1)
-            continue;
-        /*Update 'queue'*/
-        for (j = 0; j < comm->numUpdates[i]-1; ++j)
-            comm->in[j][i] = comm->in[j+1][i];
-        /*Decrease numUpdates*/
-        comm->numUpdates[i]--;
+        comm->gotUpdate[i] = false;
     }
 
     /*Commit all internal outputs*/
