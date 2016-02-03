@@ -6,6 +6,9 @@
 -- Instance: @name@
 -- @info@
 --
+-- TODO: Make all constant arrays look like C-Arrays (index from 0 to N!!!!)
+-- Exceptions are DATA signals (Endianess) and signal types
+--
 -- Author: M. Schilling
 -- Date: 2015/10/14
 
@@ -26,9 +29,7 @@ package bg_graph_@name@_config is
     constant NO_SOURCES : integer := @sources@;
     constant NO_SINKS   : integer := @sinks@;
     constant NO_COPIES  : integer := @copies@;
-    -- TODO: Add other merges
     constant NO_MERGES  : integer := @merges@;
-    -- TODO: Add other nodes
     constant NO_UNARY   : integer := @unaryNodes@;
     constant NO_BINARY  : integer := @binaryNodes@;
     constant NO_TERNARY : integer := @ternaryNodes@;
