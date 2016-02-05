@@ -162,7 +162,7 @@ begin
                 fp_out_ack <= '0';
                 internal_output_req <= '0';
                 out_port <= (others => '0');
-                OutputState <= idle;
+                OutputState <= InitialState;
             else
                 fp_out_ack <= '0';
                 internal_output_req <= '0';
