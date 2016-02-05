@@ -248,7 +248,7 @@ begin
     GENERATE_MERGES : for i in NO_MERGES-1 downto 0 generate
 
         GENERATE_MERGE_SUM_SIMPLE : if (MERGE_TYPE(i) = simple_sum) generate
-            merge_sum_simple : bg_pipe_simple
+            merge_sum_simple : bg_pipe
             port map (
                         clk => clk,
                         rst => rst,
@@ -263,7 +263,7 @@ begin
             end generate;
 
         GENERATE_MERGE_PROD_SIMPLE : if (MERGE_TYPE(i) = simple_prod) generate
-            merge_prod_simple : bg_pipe_simple
+            merge_prod_simple : bg_pipe
             port map (
                         clk => clk,
                         rst => rst,
@@ -278,7 +278,7 @@ begin
             end generate;
 
         GENERATE_MERGE_NORM_SIMPLE : if (MERGE_TYPE(i) = simple_norm) generate
-            merge_norm_simple : bg_pipe_simple
+            merge_norm_simple : bg_pipe
             port map (
                         clk => clk,
                         rst => rst,
