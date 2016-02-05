@@ -14,26 +14,38 @@ package bg_graph_@name@_comm_config is
     constant INTERNAL_INPUT_TO_GRAPH_INPUT : int_array_t(0 to NO_INTERNAL_INPUTS) :=
     (
         <internalInputSinkIdx0>
+        others => 0 --dummy
     );
     constant EXTERNAL_INPUT_TO_GRAPH_INPUT : int_array_t(0 to NO_EXTERNAL_INPUTS) :=
     (
         <externalInputSinkIdx0>
+        others => 0 --dummy
+    );
+    type external_input_has_backedge_t is array(0 to NO_EXTERNAL_INPUTS) of boolean;
+    constant EXTERNAL_INPUT_HAS_BACKEDGE : external_input_has_backedge_t :=
+    (
+        <externalInputHasBackedge0>
+        others => false
     );
     constant INTERNAL_OUTPUT_TO_GRAPH_OUTPUT : int_array_t(0 to NO_INTERNAL_OUTPUTS) :=
     (
         <internalOutputSrcIdx0>
+        others => 0 --dummy
     );
     constant EXTERNAL_OUTPUT_TO_GRAPH_OUTPUT : int_array_t(0 to NO_EXTERNAL_OUTPUTS) :=
     (
         <externalOutputSrcIdx0>
+        others => 0 --dummy
     );
     constant EXTERNAL_OUTPUT_TO_RECVID : int_array_t(0 to NO_EXTERNAL_OUTPUTS) :=
     (
         <externalOutputSinkId0>
+        others => 0 --dummy
     );
     constant EXTERNAL_OUTPUT_TO_SINKID : int_array_t(0 to NO_EXTERNAL_OUTPUTS) :=
     (
         <externalOutputSinkIdx0>
+        others => 0 --dummy
     );
 
 	component bg_graph_@name@ is

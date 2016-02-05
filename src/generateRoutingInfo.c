@@ -132,7 +132,7 @@ int main (int argc, char *argv[])
             }
         }
         /*Finalize with sentinels*/
-        sprintf(dict.repl, "0");
+        sprintf(dict.repl, " ");
         sprintf(dict.token, "<externalInputSrcId%u>", numExternalInputs);
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<externalInputSrcIdx%u>", numExternalInputs);
@@ -141,7 +141,6 @@ int main (int argc, char *argv[])
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<internalInputSinkIdx%u>", numInternalInputs);
         writeDictionary(dictionary, &dict);
-        sprintf(dict.repl, "false");
         sprintf(dict.token, "<externalInputHasBackedge%u>", numExternalInputs);
         writeDictionary(dictionary, &dict);
 
@@ -170,7 +169,7 @@ int main (int argc, char *argv[])
             }
         }
         /*Finalize with sentinels*/
-        sprintf(dict.repl, "0");
+        sprintf(dict.repl, " ");
         sprintf(dict.token, "<externalOutputSinkId%u>", numExternalOutputs);
         writeDictionary(dictionary, &dict);
         sprintf(dict.token, "<externalOutputSinkIdx%u>", numExternalOutputs);

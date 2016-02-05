@@ -5,34 +5,43 @@
 /*Internal Input Definitions*/
 static const uint8_t internalInputSinkIdx[<name>_NO_INTERNAL_INPUTS+1] = {
     <internalInputSinkIdx0>
+        0
 };
 /*External Input Definitions*/
 static const uint8_t externalInputSenderId[<name>_NO_EXTERNAL_INPUTS+1] = {
     <externalInputSrcId0>
+        0
 };
 static const uint8_t externalInputSrcIdx[<name>_NO_EXTERNAL_INPUTS+1] = { /*Not needed*/
     <externalInputSrcIdx0>
+        0
 };
 static const uint8_t externalInputSinkIdx[<name>_NO_EXTERNAL_INPUTS+1] = {
     <externalInputSinkIdx0>
+        0
 };
 static const bool externalInputHasBackedge[<name>_NO_EXTERNAL_INPUTS+1] = {
     <externalInputHasBackedge0>
+        false
 };
 
 /*Internal Output Definitions*/
 static const uint8_t internalOutputSrcIdx[<name>_NO_INTERNAL_OUTPUTS+1] = {
     <internalOutputSrcIdx0>
+        0
 };
 /*External Output Definitions*/
 static const uint8_t externalOutputReceiverId[<name>_NO_EXTERNAL_OUTPUTS+1] = {
     <externalOutputSinkId0>
+        0
 };
 static const uint8_t externalOutputSrcIdx[<name>_NO_EXTERNAL_OUTPUTS+1] = {
     <externalOutputSrcIdx0>
+        0
 };
 static const uint8_t externalOutputSinkIdx[<name>_NO_EXTERNAL_OUTPUTS+1] = {
     <externalOutputSinkIdx0>
+        0
 };
 
 #if (<name>_NO_EXTERNAL_INPUTS > 0) || (<name>_NO_EXTERNAL_OUTPUTS > 0)
@@ -105,7 +114,7 @@ uint8_t <name>_init(<name>_comm_t *comm, struct NDLComNode *node, const <name>_g
 uint8_t <name>_process(<name>_comm_t *comm)
 {
     uint8_t trigger = 1;
-    unsigned int i, j;
+    unsigned int i;
     struct BGData response;
 
     response.mBase.mId = REPRESENTATIONS_REPRESENTATION_ID_BGData;
