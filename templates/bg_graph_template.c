@@ -37,5 +37,5 @@ void <name>_graph_evaluate (<name>_graph_t *graph, const <type> in[<name>_GRAPH_
 
 <code0>
 
-    return 0;
+    return;
 }
