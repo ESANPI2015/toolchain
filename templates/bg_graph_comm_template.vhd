@@ -36,13 +36,13 @@ architecture Behavioral of bg_graph_@name@_comm is
 
     type ExternalInputStates is (idle, check, waiting, sync);
     signal ExternalInputState : ExternalInputStates;
-    signal currInput : integer range 0 to NO_EXTERNAL_INPUTS-1;
+    signal currInput : integer range 0 to NO_EXTERNAL_INPUTS-1; -- NOTE: Even if the range is 0 to 0, the synthesis creates a 1bit register :/
     signal gotRequest : std_logic_vector(0 to NO_EXTERNAL_INPUTS-1);
     signal gotAllRequests : std_logic;
 
     type ExternalOutputStates is (idle, waiting, transmit);
     signal ExternalOutputState : ExternalOutputStates;
-    signal currOutput : integer range 0 to NO_EXTERNAL_OUTPUTS-1;
+    signal currOutput : integer range 0 to NO_EXTERNAL_OUTPUTS-1; -- See above note
 
     -- signals here
     signal src_to_graph : DATA_PORT(NO_INPUTS-1 downto 0);
@@ -147,6 +147,10 @@ begin
                                 ExternalInputState <= check;
                             else
                                 currInput <= currInput + 1;
+                                -- We have to check for overflow ourselves (see NOTE at currInput signal)
+                                if (currInput = NO_EXTERNAL_INPUTS-1) then
+                                    currInput <= 0;
+                                end if;
                             end if;
                         when check =>
                             -- Check if we got all needed requests
@@ -158,6 +162,9 @@ begin
                             else
                                 -- If not, go to idle and advance
                                 currInput <= currInput + 1;
+                                if (currInput = NO_EXTERNAL_INPUTS-1) then
+                                    currInput <= 0;
+                                end if;
                                 ExternalInputState <= idle;
                             end if;
                         when waiting =>
@@ -222,13 +229,15 @@ begin
                                 ExternalOutputState <= waiting;
                             else
                                 currOutput <= currOutput + 1;
+                                if (currOutput = NO_EXTERNAL_OUTPUTS-1) then
+                                    currOutput <= 0;
+                                end if;
                             end if;
                         when waiting =>
                             -- Wait until the output has seen our ack
                             graph_to_sink_ack(EXTERNAL_OUTPUT_TO_GRAPH_OUTPUT(currOutput)) <= '1';
                             if (graph_to_sink_req(EXTERNAL_OUTPUT_TO_GRAPH_OUTPUT(currOutput)) = '0') then
                                 graph_to_sink_ack(EXTERNAL_OUTPUT_TO_GRAPH_OUTPUT(currOutput)) <= '0';
-                                out_req <= '1';
                                 ExternalOutputState <= transmit;
                             end if;
                         when transmit =>
@@ -238,6 +247,9 @@ begin
                             if (out_ack = '1') then
                                 out_req <= '0';
                                 currOutput <= currOutput + 1;
+                                if (currOutput = NO_EXTERNAL_OUTPUTS-1) then
+                                    currOutput <= 0;
+                                end if;
                                 ExternalOutputState <= idle;
                             end if;
                     end case;
