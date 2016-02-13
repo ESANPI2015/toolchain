@@ -4,7 +4,7 @@
 
 #define <name>_NO_EXTERNAL_INTERFACES <numExternalInterfaces>
 
-float <name>_readInternalInput(const unsigned int i)
+<type> <name>_readInternalInput(const unsigned int i)
 {
     /*Implement me*/
     return 0.0f;
@@ -71,5 +71,5 @@ int main ()
         ndlcomBridgeProcessOnce(&bridge);
     }
 
-    return 0;
+return 0;
 }

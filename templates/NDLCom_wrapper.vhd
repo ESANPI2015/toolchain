@@ -27,7 +27,7 @@ use work.devices.all;
 use work.register_types.all;
 use work.register_pack.all;
 
-entity NDLCom_wrapper is
+entity @name@_NDLCom_wrapper is
     generic ( CLK_FREQ       : integer := 16000000;  --! the system clock (in Hz)
               LS_BAUD_RATE   : natural := 921600    --! baud rate for the lowspeed communication
             );
@@ -85,9 +85,9 @@ entity NDLCom_wrapper is
 
            nc_last_error    : out std_logic_vector(15 downto 0);
            nc_clear_last_error : in std_logic := '0' );
-end NDLCom_wrapper;
+end @name@_NDLCom_wrapper;
 
-architecture Behavioral of NDLCom_wrapper is
+architecture Behavioral of @name@_NDLCom_wrapper is
 
     signal nc_readyToSend      : std_logic;
     signal nc_startSending     : std_logic;
