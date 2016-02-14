@@ -42,7 +42,7 @@ pkg_check_modules(toolchain_PKGCONFIG REQUIRED
 include_directories(${toolchain_PKGCONFIG_INCLUDE_DIRS})
 message(${toolchain_PKGCONFIG_INCLUDE_DIRS})
 link_directories(${toolchain_PKGCONFIG_LIBRARY_DIRS})
-add_definitions(${toolchain_PKGCONFIG_CFLAGS_OTHER} -ggdb -Wall -Werror -pedantic)
+add_definitions(${toolchain_PKGCONFIG_CFLAGS_OTHER} -ggdb -Wall -pedantic)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
