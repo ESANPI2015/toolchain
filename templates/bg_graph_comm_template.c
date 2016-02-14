@@ -151,7 +151,6 @@ uint8_t <name>_process(<name>_comm_t *comm)
     /*Transmit all external outputs*/
     for (i = 0; i < <name>_NO_EXTERNAL_OUTPUTS; ++i) {
         /*Transmit new value*/
-        response.output = externalOutputSrcIdx[i];
         response.input = externalOutputSinkIdx[i];
         response.value = comm->out[externalOutputSrcIdx[i]];
         ndlcomNodeSend(comm->node,externalOutputReceiverId[i], &response, sizeof(response));
