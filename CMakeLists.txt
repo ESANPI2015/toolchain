@@ -48,6 +48,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # add the executables
+add_executable(bg-analyse
+    src/analyseBG.c
+    )
+target_link_libraries(bg-analyse
+    c_bagel
+    )
+add_dependencies(bg-analyse
+    c_bagel
+    )
 add_executable(bg-generate
     src/generateBG.c
     )
@@ -84,15 +93,15 @@ target_link_libraries(map-transform
 add_dependencies(map-transform
     mapBG hwGraph c_bagel
     )
-add_executable(deploy
-    src/deployer.c
-    )
-target_link_libraries(deploy
-    mapBG hwGraph c_bagel
-    )
-add_dependencies(deploy
-    mapBG hwGraph c_bagel
-    )
+#add_executable(deploy
+    #src/deployer.c
+    #)
+#target_link_libraries(deploy
+    #mapBG hwGraph c_bagel
+    #)
+#add_dependencies(deploy
+    #mapBG hwGraph c_bagel
+    #)
 add_executable(map-route
     src/generateRoutingInfo.c
     )
@@ -104,6 +113,9 @@ add_dependencies(map-route
     )
 
 # add custom targets (symlinks)
+add_custom_target(bg-analyse-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg-analyse ${CMAKE_SOURCE_DIR}/bg-analyse
+    DEPENDS bg-analyse)
 add_custom_target(bg-generate-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg-generate ${CMAKE_SOURCE_DIR}/bg-generate
     DEPENDS bg-generate)
@@ -116,13 +128,15 @@ add_custom_target(map-lazy-symlink ALL
 add_custom_target(map-transform-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map-transform ${CMAKE_SOURCE_DIR}/map-transform
     DEPENDS map-transform)
-add_custom_target(deploy-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/deploy ${CMAKE_SOURCE_DIR}/deploy
-    DEPENDS deploy)
+#add_custom_target(deploy-lazy-symlink ALL
+    #ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/deploy ${CMAKE_SOURCE_DIR}/deploy
+    #DEPENDS deploy)
 add_custom_target(map-route-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map-route ${CMAKE_SOURCE_DIR}/map-route
     DEPENDS map-route)
 # and clean them up
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg-analyse")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg-generate")
 set_directory_properties(PROPERTIES
@@ -131,7 +145,7 @@ set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map-transform")
-set_directory_properties(PROPERTIES
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/deploy")
+#set_directory_properties(PROPERTIES
+    #ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/deploy")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map-route")
