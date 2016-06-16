@@ -29,6 +29,16 @@ if(NOT TARGET genBG)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../genBG/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../genBG/src)
 endif(NOT TARGET genBG)
+if(NOT TARGET ndlcom)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ndlcom ndlcom)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ndlcom/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ndlcom/src)
+endif(NOT TARGET ndlcom)
+if(NOT TARGET representations)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations representations)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations/src)
+endif(NOT TARGET representations)
 
 SET(ENV{PKG_CONFIG_PATH}
     ${CMAKE_BINARY_DIR}:$ENV{PKG_CONFIG_PATH}
@@ -36,7 +46,7 @@ SET(ENV{PKG_CONFIG_PATH}
 
 find_package(PkgConfig)
 pkg_check_modules(toolchain_PKGCONFIG REQUIRED
-    c_bagel hwGraph mapBG genBG
+    c_bagel hwGraph mapBG genBG ndlcom representations
     )
 
 include_directories(${toolchain_PKGCONFIG_INCLUDE_DIRS})
@@ -48,6 +58,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # add the executables
+add_executable(isp
+    src/isp.cpp
+    )
+target_link_libraries(isp
+    ndlcom representations
+    )
+add_dependencies(isp
+    ndlcom representations
+    )
 add_executable(bg-analyse
     src/analyseBG.c
     )
@@ -113,6 +132,9 @@ add_dependencies(map-route
     )
 
 # add custom targets (symlinks)
+add_custom_target(isp-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/isp ${CMAKE_SOURCE_DIR}/isp
+    DEPENDS isp)
 add_custom_target(bg-analyse-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg-analyse ${CMAKE_SOURCE_DIR}/bg-analyse
     DEPENDS bg-analyse)
@@ -135,6 +157,8 @@ add_custom_target(map-route-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/map-route ${CMAKE_SOURCE_DIR}/map-route
     DEPENDS map-route)
 # and clean them up
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/isp")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/bg-analyse")
 set_directory_properties(PROPERTIES
