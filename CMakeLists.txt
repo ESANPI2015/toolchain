@@ -39,6 +39,11 @@ if(NOT TARGET representations)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations/src)
 endif(NOT TARGET representations)
+if(NOT TARGET isp)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../isp isp)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../isp/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../isp/src)
+endif(NOT TARGET isp)
 
 SET(ENV{PKG_CONFIG_PATH}
     ${CMAKE_BINARY_DIR}:$ENV{PKG_CONFIG_PATH}
@@ -46,7 +51,7 @@ SET(ENV{PKG_CONFIG_PATH}
 
 find_package(PkgConfig)
 pkg_check_modules(toolchain_PKGCONFIG REQUIRED
-    c_bagel hwGraph mapBG genBG ndlcom representations
+    c_bagel hwGraph mapBG genBG ndlcom representations isp
     )
 
 include_directories(${toolchain_PKGCONFIG_INCLUDE_DIRS})
@@ -58,15 +63,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # add the executables
-add_executable(isp
-    src/isp.cpp
-    )
-target_link_libraries(isp
-    ndlcom representations
-    )
-add_dependencies(isp
-    ndlcom representations
-    )
+#add_executable(isp
+    #src/isp.cpp
+    #)
+#target_link_libraries(isp
+    #ndlcom representations
+    #)
+#add_dependencies(isp
+    #ndlcom representations
+    #)
 add_executable(bg-analyse
     src/analyseBG.c
     )
@@ -133,7 +138,7 @@ add_dependencies(map-route
 
 # add custom targets (symlinks)
 add_custom_target(isp-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/isp ${CMAKE_SOURCE_DIR}/isp
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/isp/tools/isprog ${CMAKE_SOURCE_DIR}/isp
     DEPENDS isp)
 add_custom_target(bg-analyse-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bg-analyse ${CMAKE_SOURCE_DIR}/bg-analyse
