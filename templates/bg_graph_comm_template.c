@@ -45,7 +45,7 @@ static const uint8_t externalOutputSinkIdx[<name>_NO_EXTERNAL_OUTPUTS+1] = {
 };
 
 #if (<name>_NO_EXTERNAL_INPUTS > 0) || (<name>_NO_EXTERNAL_OUTPUTS > 0)
-static void <name>_ndlcomBGDataHandler(void *context, const struct NDLComHeader *header, const void *payload)
+static void <name>_ndlcomBGDataHandler(void *context, const struct NDLComHeader *header, const void *payload, const void *origin)
 {
     <name>_comm_t *comm = (<name>_comm_t *)context;
     unsigned int input;
