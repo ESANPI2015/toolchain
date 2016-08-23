@@ -14,21 +14,21 @@ if(NOT TARGET c_bagel)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ext/c_bagel c_bagel)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../ext/c_bagel/src)
 endif(NOT TARGET c_bagel)
-if(NOT TARGET hwGraph)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../hwGraph hwGraph)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../hwGraph/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../hwGraph/src)
-endif(NOT TARGET hwGraph)
-if(NOT TARGET mapBG)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mapBG mapBG)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../mapBG/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../mapBG/src)
-endif(NOT TARGET mapBG)
-if(NOT TARGET genBG)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../genBG genBG)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../genBG/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../genBG/src)
-endif(NOT TARGET genBG)
+if(NOT TARGET hwgraph)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph hwgraph)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph/src)
+endif(NOT TARGET hwgraph)
+if(NOT TARGET mapbg)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/mapbg mapbg)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/mapbg/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/mapbg/src)
+endif(NOT TARGET mapbg)
+if(NOT TARGET genbg)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/genbg genbg)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/genbg/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/genbg/src)
+endif(NOT TARGET genbg)
 if(NOT TARGET ndlcom)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ndlcom ndlcom)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/ndlcom/include)
@@ -40,9 +40,9 @@ if(NOT TARGET representations)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/representations/src)
 endif(NOT TARGET representations)
 if(NOT TARGET isp)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../isp isp)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../isp/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../isp/src)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/isp isp)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/isp/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/isp/src)
 endif(NOT TARGET isp)
 
 SET(ENV{PKG_CONFIG_PATH}
@@ -51,7 +51,7 @@ SET(ENV{PKG_CONFIG_PATH}
 
 find_package(PkgConfig)
 pkg_check_modules(toolchain_PKGCONFIG REQUIRED
-    c_bagel hwGraph mapBG genBG ndlcom representations isp
+    c_bagel hwgraph mapbg genbg ndlcom representations isp
     )
 
 include_directories(${toolchain_PKGCONFIG_INCLUDE_DIRS})
@@ -85,55 +85,55 @@ add_executable(bg-generate
     src/generateBG.c
     )
 target_link_libraries(bg-generate
-    genBG c_bagel
+    genbg c_bagel
     )
 add_dependencies(bg-generate
-    genBG c_bagel
+    genbg c_bagel
     )
 add_executable(fill-template
     src/generateFromTemplate.c
     )
 target_link_libraries(fill-template
-    genBG
+    genbg
     )
 add_dependencies(fill-template
-    genBG
+    genbg
     )
 add_executable(map
     src/mapper.c
     )
 target_link_libraries(map
-    mapBG hwGraph c_bagel
+    mapbg hwgraph c_bagel
     )
 add_dependencies(map
-    mapBG hwGraph c_bagel
+    mapbg hwgraph c_bagel
     )
 add_executable(map-transform
     src/generateBGFromMapping.c
     )
 target_link_libraries(map-transform
-    mapBG hwGraph c_bagel
+    mapbg hwgraph c_bagel
     )
 add_dependencies(map-transform
-    mapBG hwGraph c_bagel
+    mapbg hwgraph c_bagel
     )
 #add_executable(deploy
     #src/deployer.c
     #)
 #target_link_libraries(deploy
-    #mapBG hwGraph c_bagel
+    #mapbg hwgraph c_bagel
     #)
 #add_dependencies(deploy
-    #mapBG hwGraph c_bagel
+    #mapbg hwgraph c_bagel
     #)
 add_executable(map-route
     src/generateRoutingInfo.c
     )
 target_link_libraries(map-route
-    mapBG hwGraph c_bagel genBG
+    mapbg hwgraph c_bagel genbg
     )
 add_dependencies(map-route
-    mapBG hwGraph c_bagel genBG
+    mapbg hwgraph c_bagel genbg
     )
 
 # add custom targets (symlinks)
