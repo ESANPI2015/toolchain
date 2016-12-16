@@ -107,7 +107,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal nc_sendReceiver     : std_logic_vector(7 downto 0);
     signal nc_sendFrameCounter : std_logic_vector(7 downto 0);
     signal nc_sendLength       : std_logic_vector(7 downto 0);
-    signal nc_send_wea         : std_logic_vector(0 downto 0);
+    signal nc_send_wea         : std_logic;
     signal nc_send_addr        : std_logic_vector(7 downto 0);
     signal nc_send_data        : std_logic_vector(7 downto 0);
     signal nc_recvSender       : std_logic_vector(7 downto 0);
@@ -119,7 +119,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
 
     signal frameCounter_addr_in  : std_logic_vector(7 downto 0);
     signal frameCounter_data_in  : std_logic_vector(7 downto 0);
-    signal frameCounter_wea      : std_logic_vector(0 downto 0);
+    signal frameCounter_wea      : std_logic;
     signal frameCounter_addr_out : std_logic_vector(7 downto 0);
     signal frameCounter_data_out : std_logic_vector(7 downto 0);
 
@@ -140,7 +140,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal common_recvError : std_logic;
     signal common_send_addr : std_logic_vector(7 downto 0);
     signal common_send_data : std_logic_vector(7 downto 0);
-    signal common_send_wea  : std_logic_vector(0 downto 0);
+    signal common_send_wea  : std_logic;
 
     -- REGISTER
 
@@ -165,7 +165,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal register_startSending  : std_logic;
     signal register_send_addr     : std_logic_vector(7 downto 0);
     signal register_send_data     : std_logic_vector(7 downto 0);
-    signal register_send_wea      : std_logic_vector(0 downto 0);
+    signal register_send_wea      : std_logic;
 
     signal reg_read_id_int    : std_logic_vector(15 downto 0);
     signal reg_write_type_int : registertype_t;
@@ -191,7 +191,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal ping_startSending  : std_logic;
     signal ping_send_addr     : std_logic_vector(7 downto 0);
     signal ping_send_data     : std_logic_vector(7 downto 0);
-    signal ping_send_wea      : std_logic_vector(0 downto 0);
+    signal ping_send_wea      : std_logic;
 
     signal pingId        : std_logic_vector(15 downto 0);
     signal sendPingReply : std_logic;
@@ -222,7 +222,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal isp_startSending : std_logic;
     signal isp_send_addr    : std_logic_vector(7 downto 0);
     signal isp_send_data    : std_logic_vector(7 downto 0);
-    signal isp_send_wea     : std_logic_vector(0 downto 0);
+    signal isp_send_wea     : std_logic;
 
     signal isp_din_valid_int  : std_logic;
     signal sendIspAckRequest  : std_logic;
@@ -242,7 +242,7 @@ architecture Behavioral of @name@_NDLCom_wrapper is
 	signal behaviorgraph_startSending : std_logic;
 	signal behaviorgraph_send_addr    : std_logic_vector(7 downto 0);
 	signal behaviorgraph_send_data    : std_logic_vector(7 downto 0);
-	signal behaviorgraph_send_wea     : std_logic_vector(0 downto 0);
+	signal behaviorgraph_send_wea     : std_logic;
 	
 	signal bg_output_recvId_int : std_logic_vector(7 downto 0);
 	signal bg_output_portId_int : std_logic_vector(7 downto 0);
@@ -264,7 +264,7 @@ begin
         generic map ( ADDRWIDTH => 8,
                       DATAWIDTH => 8 )
         port map ( clk   => CLK,
-                   we    => frameCounter_wea(0),
+                   we    => frameCounter_wea,
                    waddr => frameCounter_addr_in,
                    wdata => frameCounter_data_in,
                    raddr => frameCounter_addr_out,
@@ -494,14 +494,14 @@ begin
                 
                 frameCounter_addr_in  <= (others => '0');
                 frameCounter_data_in  <= (others => '0');
-                frameCounter_wea      <= "0";
+                frameCounter_wea      <= '0';
                 frameCounter_addr_out <= (others => '0');
 
                 nc_sendReceiver  <= (others => '0');
                 nc_sendLength    <= (others => '0');
                 nc_startSending  <= '0';
 
-                common_send_wea  <= "0";
+                common_send_wea  <= '0';
                 common_send_addr <= (others => '0');
                 common_send_data <= (others => '0');
 
@@ -514,9 +514,9 @@ begin
 
             else
                 -- defaults
-                frameCounter_wea  <= "0";
+                frameCounter_wea  <= '0';
                 nc_startSending   <= '0';
-                common_send_wea   <= "0";
+                common_send_wea   <= '0';
                 ping_sendAck      <= '0';
                 isp_sendAck       <= '0';
                 register_sendAck  <= '0';
@@ -541,7 +541,7 @@ begin
                             -- write message type
                             common_send_addr <= x"00";
                             common_send_data <= Representation_Id_RepresentationsPing;
-                            common_send_wea  <= "1";
+                            common_send_wea  <= '1';
                             sendState        <= writeTimeStamp;
 
                         elsif isp_sendCmdRequest='1' and nc_readyToSend='1' then
@@ -554,7 +554,7 @@ begin
                             -- write message type
                             common_send_addr <= x"00";
                             common_send_data <= Representation_Id_IspCommand;
-                            common_send_wea  <= "1";
+                            common_send_wea  <= '1';
                             sendState        <= writeTimeStamp;
 
                         elsif isp_sendDataRequest='1' and nc_readyToSend='1' then
@@ -567,7 +567,7 @@ begin
                             -- write message type
                             common_send_addr <= x"00";
                             common_send_data <= Representation_Id_IspData;
-                            common_send_wea  <= "1";
+                            common_send_wea  <= '1';
                             sendState        <= writeTimeStamp;
 
                         elsif register_sendRequest='1' and nc_readyToSend='1' then
@@ -580,7 +580,7 @@ begin
                             -- write message type
                             common_send_addr <= x"00";
                             common_send_data <= Representation_Id_RegisterValueResponse;
-                            common_send_wea  <= "1";
+                            common_send_wea  <= '1';
                             sendState        <= writeTimeStamp;
 
                         elsif behaviorgraph_sendRequest='1' and nc_readyToSend='1' then
@@ -593,7 +593,7 @@ begin
                              -- write message type
                              common_send_addr      <= x"00";
                              common_send_data		  <= Representation_Id_BGData;
-                             common_send_wea       <= "1";
+                             common_send_wea       <= '1';
                              sendState             <= writeTimeStamp;
 
                         else
@@ -603,11 +603,11 @@ begin
                     when writeTimeStamp =>
                         common_send_addr <= incr_f(common_send_addr);
                         common_send_data <= rtc_actual_time(counter*8+7 downto counter*8);
-                        common_send_wea  <= "1";
+                        common_send_wea  <= '1';
                         if counter=1 then
                             -- increment frame counter
                             frameCounter_data_in <= incr_f(frameCounter_data_out);
-                            frameCounter_wea     <= "1";
+                            frameCounter_wea     <= '1';
                         end if;
                         if counter < 7 then
                             counter := counter + 1;
@@ -794,13 +794,13 @@ begin
                 
                 register_send_addr <= (others => '0');
                 register_send_data <= (others => '0');
-                register_send_wea  <= "0";
+                register_send_wea  <= '0';
 
                 registerSendState <= idle;
             else
                 -- defaults
                 register_startSending <= '0';
-                register_send_wea <= "0";
+                register_send_wea <= '0';
 
                 case registerSendState is
 
@@ -824,12 +824,12 @@ begin
                             byteCounter := 1;
                             register_send_addr <= x"09";
                             register_send_data <= reg_read_id_int(7 downto 0);
-                            register_send_wea  <= "1";
+                            register_send_wea  <= '1';
                             registerSendState  <= writeAddr;
                         else
                             register_send_addr <= x"0a";
                             register_send_data <= reg_read_id_int(15 downto 8);
-                            register_send_wea  <= "1";
+                            register_send_wea  <= '1';
                             registerSendState  <= writeType;
                         end if;
 
@@ -837,14 +837,14 @@ begin
                         byteCounter := 0;
                         register_send_addr <= x"0b";
                         register_send_data <= registertype2enum(reg_read_type);
-                        register_send_wea  <= "1";
+                        register_send_wea  <= '1';
                         registerSendState  <= writeData;
 
                     when writeData =>
                         if byteCounter < registertype2len(reg_read_type) then
                             register_send_addr <= std_logic_vector(x"0c" + to_unsigned(byteCounter,8));
                             register_send_data <= reg_read_data(byteCounter*8+7 downto byteCounter*8);
-                            register_send_wea  <= "1";
+                            register_send_wea  <= '1';
                             byteCounter := byteCounter + 1;
                             registerSendState  <= writeData;
                         else
@@ -979,13 +979,13 @@ begin
 
                 ping_send_addr <= (others => '0');
                 ping_send_data <= (others => '0');
-                ping_send_wea  <= "0";
+                ping_send_wea  <= '0';
 
                 pingSendState <= idle;
             else
                 -- defaults
                 ping_startSending <= '0';
-                ping_send_wea <= "0";
+                ping_send_wea <= '0';
 
                 case pingSendState is
 
@@ -1006,14 +1006,14 @@ begin
                     when writeMode =>
                         ping_send_addr <= x"09";
                         ping_send_data <= x"02";
-                        ping_send_wea  <= "1";
+                        ping_send_wea  <= '1';
                         dataCounter    := 0;
                         pingSendState  <= writeTime;
 
                     when writeTime =>
                         ping_send_addr <= incr_f(ping_send_addr);
                         ping_send_data <= rtc_actual_time(dataCounter*8+7 downto dataCounter*8);
-                        ping_send_wea  <= "1";
+                        ping_send_wea  <= '1';
                         if dataCounter < 7 then
                             dataCounter   := dataCounter + 1;
                             pingSendState <= writeTime;
@@ -1025,7 +1025,7 @@ begin
                     when writePingId =>
                         ping_send_addr <= incr_f(ping_send_addr);
                         ping_send_data <= pingId(dataCounter*8+7 downto dataCounter*8);
-                        ping_send_wea  <= "1";
+                        ping_send_wea  <= '1';
                         if dataCounter < 1 then
                             dataCounter   := dataCounter + 1;
                             pingSendState <= writePingId;
@@ -1234,14 +1234,14 @@ begin
 
                 isp_send_addr <= (others => '0');
                 isp_send_data <= (others => '0');
-                isp_send_wea  <= "0";
+                isp_send_wea  <= '0';
                 isp_dout_ack  <= '0';
                 
                 ispSendState <= idle;
             else
                 -- defaults
                 isp_startSending <= '0';
-                isp_send_wea <= "0";
+                isp_send_wea <= '0';
                 isp_dout_ack <= '0';
 
                 case ispSendState is
@@ -1268,13 +1268,13 @@ begin
                     when cmd_writeAck =>
                         isp_send_addr <= incr_f(isp_send_addr);
                         isp_send_data <= x"03";
-                        isp_send_wea  <= "1";
+                        isp_send_wea  <= '1';
                         ispSendState  <= cmd_writeAddr;
 
                     when cmd_writeAddr =>
                         isp_send_addr <= incr_f(isp_send_addr);
                         isp_send_data <= isp_dout_addr(byteCounter*8+7 downto byteCounter*8);
-                        isp_send_wea  <= "1";
+                        isp_send_wea  <= '1';
                         if byteCounter < 3 then
                             byteCounter  := byteCounter + 1;
                             ispSendState <= cmd_writeAddr;
@@ -1295,7 +1295,7 @@ begin
                     when data_writeLength =>
                         isp_send_addr <= incr_f(isp_send_addr);
                         isp_send_data <= isp_dout_addr(byteCounter*8+7 downto byteCounter*8);
-                        isp_send_wea  <= "1";
+                        isp_send_wea  <= '1';
                         if byteCounter < 3 then
                             byteCounter  := byteCounter + 1;
                             ispSendState <= data_writeLength;
@@ -1308,7 +1308,7 @@ begin
                         if isp_dout_valid='1' then
                             isp_send_addr <= incr_f(isp_send_addr);
                             isp_send_data <= isp_dout;
-                            isp_send_wea  <= "1";
+                            isp_send_wea  <= '1';
                             isp_dout_ack  <= '1';
                             if byteCounter < 127 then
                                 byteCounter  := byteCounter + 1;
@@ -1423,14 +1423,14 @@ begin
 				behaviorgraph_startSending <= '0';
 				behaviorgraph_send_addr <= (others => '0');
 				behaviorgraph_send_data <= (others => '0');
-				behaviorgraph_send_wea <= "0";
+				behaviorgraph_send_wea <= '0';
 				
 				behaviorGraphSendState <= idle;
 			else
 				-- defaults
 				bg_output_ack <= '0';
 				behaviorgraph_startSending <= '0';
-				behaviorgraph_send_wea     <= "0";
+				behaviorgraph_send_wea     <= '0';
 				
 				case behaviorGraphSendState is
 					when idle =>
@@ -1456,14 +1456,14 @@ begin
 					when writeId =>
 						behaviorgraph_send_addr <= x"09";
 						behaviorgraph_send_data <= bg_output_portid_int;
-						behaviorgraph_send_wea <= "1";
+						behaviorgraph_send_wea <= '1';
 						byteCounter := 0;
 						behaviorGraphSendState <= writeData;
 					
 					when writeData =>
 						behaviorgraph_send_addr <= incr_f(behaviorgraph_send_addr);
 						behaviorgraph_send_data <= bg_output_data_int(byteCounter*8+7 downto byteCounter*8);
-						behaviorgraph_send_wea <= "1";
+						behaviorgraph_send_wea <= '1';
 						if (byteCounter < 3) then
 						   byteCounter := byteCounter + 1;
 							behaviorGraphSendState <= writeData;
