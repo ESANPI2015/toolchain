@@ -101,8 +101,8 @@ uint8_t <name>_init(<name>_comm_t *comm, struct NDLComNode *node, const <name>_g
 #if (<name>_NO_EXTERNAL_INPUTS > 0) || (<name>_NO_EXTERNAL_OUTPUTS > 0)
     if (node) {
         comm->node = node;
-        ndlcomInternalHandlerInit(&comm->handler, <name>_ndlcomBGDataHandler, 0, comm);
-        ndlcomNodeRegisterInternalHandler(comm->node, &comm->handler);
+        ndlcomNodeHandlerInit(&comm->handler, <name>_ndlcomBGDataHandler, 0, comm);
+        ndlcomNodeRegisterNodeHandler(comm->node, &comm->handler);
         ndlcomNodeSetOwnSenderId(comm->node, <name>_DEVICE_ID);
     } else
         return 0;

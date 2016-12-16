@@ -21,7 +21,7 @@ typedef struct {
     <name>_graph_t graph;
     /*NDLCOM*/
     bool gotUpdate[<name>_NO_EXTERNAL_INPUTS];
-    struct NDLComInternalHandler handler;
+    struct NDLComNodeHandler handler;
     struct NDLComNode *node;
     /*Internal I/O functions*/
     <name>_getInternalInputFunc sample;
