@@ -10,17 +10,17 @@
 --! @date   22.01.2015
 ---------------------------------------------------------------------------------
 -- Last Commit: 
--- $LastChangedRevision: 4333 $
+-- $LastChangedRevision: 4522 $
 -- $LastChangedBy: tstark $
--- $LastChangedDate: 2015-12-11 14:03:03 +0100 (Fr, 11. Dez 2015) $
+-- $LastChangedDate: 2016-04-07 15:58:54 +0200 (Do, 07 Apr 2016) $
 ---------------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.config.all;            --! Device specific stuff is in here, e.g. CLK_FREQ and LS_BAUD_RATE
-use work.NDLCom_config.all;     --! Some ndlcom definitions are here, e.g. HEADER_LENGTH etc.
+use work.config.all;
+use work.NDLCom_config.all;
 use work.dfki_pack.all;
 use work.representations.all;
 use work.devices.all;
@@ -29,19 +29,27 @@ use work.register_pack.all;
 
 entity @name@_NDLCom_wrapper is
     generic ( CLK_FREQ       : integer := 16000000;  --! the system clock (in Hz)
-              LS_BAUD_RATE   : natural := 921600    --! baud rate for the lowspeed communication
-            );
-    port ( CLK              : in  std_logic; --! system clock
-           RST              : in  std_logic; --! system reset
-           NODE_ID          : in  std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(<myId>,8)); --! node id
+              NUMBER_OF_HS_PORTS : natural := <numExternalInterfaces>;     --! number of highspeed communication ports
+              NUMBER_OF_LS_PORTS : natural := <numExternalInterfaces>;     --! number of lowspeed communication ports
+              LS_BAUD_RATE   : natural := 921600 );  --! baud rate for the lowspeed communication
+    port ( CLK     : in  std_logic;                     --! system clock
+           RST     : in  std_logic;                     --! system reset
+           NODE_ID : in  std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(<myId>,8));  --! node id
            
+           -- Communication pins for highspeed communication
+           hs_rx_p : in  std_logic_vector(NUMBER_OF_HS_PORTS-1 downto 0) := (others => '0');  --! LVDS positive RX input for highspeed communication
+           hs_rx_n : in  std_logic_vector(NUMBER_OF_HS_PORTS-1 downto 0) := (others => '0');  --! LVDS negative RX input for highspeed communication
+           hs_tx_p : out std_logic_vector(NUMBER_OF_HS_PORTS-1 downto 0);  --! LVDS positive TX output for highspeed communication
+           hs_tx_n : out std_logic_vector(NUMBER_OF_HS_PORTS-1 downto 0);  --! LVDS negative RX output for highspeed communication
+           hs_link_valid    : out std_logic_vector(NUMBER_OF_HS_PORTS-1 downto 0);
+
            -- Communication pins for lowspeed communication
-           ls_rx : in  std_logic_vector(<numExternalInterfaces>-1 downto 0);    --! RX input for lowspeed communication
-           ls_tx : out std_logic_vector(<numExternalInterfaces>-1 downto 0);    --! TX output for lowspeed communication
+           ls_rx : in  std_logic_vector(NUMBER_OF_LS_PORTS-1 downto 0) := (others => '0');    --! RX input for lowspeed communication
+           ls_tx : out std_logic_vector(NUMBER_OF_LS_PORTS-1 downto 0);    --! TX output for lowspeed communication
 
            resetDevice      : out std_logic; --! signal for resetting the device (only active for only cycle)
            stopDevice       : out std_logic; --! when this signal is emitted the device should stop moving (active until RESUME cmd is received)
-			  
+ 
            bg_input_portId  : out std_logic_vector(7 downto 0);  --! id of the input of the behavior graph which gets updated
            bg_input_data    : out std_logic_vector(31 downto 0); --! the data for the input
            bg_input_req     : out std_logic;                     --! this will get high iff a behavior graph update packets has been received and id and data are valid
@@ -52,6 +60,7 @@ entity @name@_NDLCom_wrapper is
            bg_output_req    : in std_logic;                      --! This will get high iff our behavior graph has produced new data
            bg_output_ack    : out std_logic;                     --! The sender process in this file will set this high for one clock cycle to acknowledge receival
 
+           reg_busy         : in  std_logic;
            reg_read_id      : out std_logic_vector(15 downto 0); --! address of the registers to be send
            reg_read_type    : in  registertype_t;                --! length of the register to be send
            reg_read_data    : in  std_logic_vector(63 downto 0); --! data of the register to be send
@@ -83,8 +92,10 @@ entity @name@_NDLCom_wrapper is
            msg_recv         : out std_logic;                      --! flag that a message was received (could be used for communication timeouts)
            commErr          : out std_logic;                      --! communication error flag
 
-           nc_last_error    : out std_logic_vector(15 downto 0);
-           nc_clear_last_error : in std_logic := '0' );
+           ndlc_clear_stat  : in  std_logic := '0';
+           ndlc_last_error  : out std_logic_vector(15 downto 0);
+           ndlc_recvEvents  : out std_logic_vector(31 downto 0);
+           ndlc_missEvents  : out std_logic_vector(31 downto 0) );
 end @name@_NDLCom_wrapper;
 
 architecture Behavioral of @name@_NDLCom_wrapper is
@@ -184,26 +195,6 @@ architecture Behavioral of @name@_NDLCom_wrapper is
 
     signal pingId        : std_logic_vector(15 downto 0);
     signal sendPingReply : std_logic;
-	 
-	 -- Behavior Graph
-	 type behaviorGraphRecvStates is (idle, checkLength, copyId, copyData, sync);
-	 signal behaviorGraphRecvState : behaviorGraphRecvStates;
-	 signal behaviorGraph_recvRequest : std_logic;
-	 signal behaviorGraph_recvAck     : std_logic;
-	 signal behaviorGraph_recv_addr   : std_logic_vector(7 downto 0);
-	 
-	 type behaviorGraphSendStates is (idle, waitAck, writeId, writeData);
-	 signal behaviorGraphSendState     : behaviorGraphSendStates;
-	 signal behaviorgraph_sendRequest  : std_logic;
-	 signal behaviorgraph_sendAck      : std_logic;
-	 signal behaviorgraph_startSending : std_logic;
-	 signal behaviorgraph_send_addr    : std_logic_vector(7 downto 0);
-	 signal behaviorgraph_send_data    : std_logic_vector(7 downto 0);
-	 signal behaviorgraph_send_wea     : std_logic_vector(0 downto 0);
-	 
-	 signal bg_output_recvId_int : std_logic_vector(7 downto 0);
-	 signal bg_output_portId_int : std_logic_vector(7 downto 0);
-	 signal bg_output_data_int : std_logic_vector(31 downto 0);
 
     -- ISP
 
@@ -237,6 +228,26 @@ architecture Behavioral of @name@_NDLCom_wrapper is
     signal sendIspAckRequest  : std_logic;
     signal sendIspDataRequest : std_logic;
 
+	-- Behavior Graph
+	type behaviorGraphRecvStates is (idle, checkLength, copyId, copyData, sync);
+	signal behaviorGraphRecvState : behaviorGraphRecvStates;
+	signal behaviorGraph_recvRequest : std_logic;
+	signal behaviorGraph_recvAck     : std_logic;
+	signal behaviorGraph_recv_addr   : std_logic_vector(7 downto 0);
+	
+	type behaviorGraphSendStates is (idle, waitAck, writeId, writeData);
+	signal behaviorGraphSendState     : behaviorGraphSendStates;
+	signal behaviorgraph_sendRequest  : std_logic;
+	signal behaviorgraph_sendAck      : std_logic;
+	signal behaviorgraph_startSending : std_logic;
+	signal behaviorgraph_send_addr    : std_logic_vector(7 downto 0);
+	signal behaviorgraph_send_data    : std_logic_vector(7 downto 0);
+	signal behaviorgraph_send_wea     : std_logic_vector(0 downto 0);
+	
+	signal bg_output_recvId_int : std_logic_vector(7 downto 0);
+	signal bg_output_portId_int : std_logic_vector(7 downto 0);
+	signal bg_output_data_int : std_logic_vector(31 downto 0);
+
 begin
 
     commErr <= nc_error or receiveError;
@@ -248,7 +259,7 @@ begin
 
     isp_din_valid <= isp_din_valid_int and not isp_din_ack;
     
-    -- input buffer (simple dual-port ram 256x8) --
+    -- frame counter buffer (simple dual-port ram 256x8) --
     frameCounter_buffer : entity work.bram_dp_simple
         generic map ( ADDRWIDTH => 8,
                       DATAWIDTH => 8 )
@@ -260,15 +271,20 @@ begin
                    rdata => frameCounter_data_out);
 
     -- NodeCommunication module
-    NDLCom : entity work.NDLCom_top(Behavioral)
+    NDLCom : entity work.NDLCom_top
         generic map ( CLK_FREQ           => CLK_FREQ,
-                      NUMBER_OF_HS_PORTS => 0,
-                      NUMBER_OF_LS_PORTS => <numExternalInterfaces>,
+                      NUMBER_OF_HS_PORTS => NUMBER_OF_HS_PORTS,
+                      NUMBER_OF_LS_PORTS => NUMBER_OF_LS_PORTS,
                       LS_BAUD_RATE       => LS_BAUD_RATE )
         port map ( CLK => CLK,
                    RST => RST,
                    NODE_ID => NODE_ID,
                    
+                   hs_rx_p => hs_rx_p,
+                   hs_rx_n => hs_rx_n,
+                   hs_tx_p => hs_tx_p,
+                   hs_tx_n => hs_tx_n,
+
                    ls_rx   => ls_rx,
                    ls_tx   => ls_tx,
                    
@@ -290,8 +306,13 @@ begin
                    recv_data        => nc_recv_data,
 
                    error            => nc_error,
-                   last_error       => nc_last_error,
-                   clear_last_error => nc_clear_last_error );
+
+                   -- debug / statistics
+                   last_error       => ndlc_last_error,
+                   clear_last_error => ndlc_clear_stat,
+                   recvEvents       => ndlc_recvEvents,
+                   missEvents       => ndlc_missEvents,
+                   clear_recvEvents => ndlc_clear_stat );
 
     
     -- ----------------------------------------------------------------------------------------------
@@ -323,9 +344,9 @@ begin
                 register_recvReadRequest  <= '0';
                 register_recvWriteRequest <= '0';
                 ping_recvRequest          <= '0';
-				behaviorgraph_recvRequest <= '0';
                 isp_recvCmdRequest        <= '0';
                 isp_recvDataRequest       <= '0';
+				behaviorgraph_recvRequest <= '0';
 
                 msg_recv         <= '0';
                 common_recvError <= '0';
@@ -400,12 +421,12 @@ begin
                                     recvType                  <= registerValue;
                                     register_recvWriteRequest <= '1';
                                     receiveState              <= waitReceiverProcess;
-												
+
                                 when Representation_Id_BGData =>
                                     recvType                  <= behaviorGraph;
                                     behaviorGraph_recvRequest <= '1';
                                     receiveState              <= waitReceiverProcess;
-                                  
+                                    
                                 when others =>
                                     nc_dataAck       <= '1';
                                     common_recvError <= '1';
@@ -523,19 +544,6 @@ begin
                             common_send_wea  <= "1";
                             sendState        <= writeTimeStamp;
 
-                        elsif behaviorgraph_sendRequest='1' and nc_readyToSend='1' then
-                             nextSendType := behaviorgraph;
-                             frameCounter_addr_in  <= bg_output_recvId_int;
-                             frameCounter_addr_out <= bg_output_recvId_int;
-                             -- write header
-                             nc_sendReceiver		  <= bg_output_recvId_int;
-                             nc_sendLength         <= x"0E";
-                             -- write message type
-                             common_send_addr      <= x"00";
-                             common_send_data		  <= Representation_Id_BGData;
-                             common_send_wea       <= "1";
-                             sendState             <= writeTimeStamp;
-									 
                         elsif isp_sendCmdRequest='1' and nc_readyToSend='1' then
                             nextSendType  := isp;
                             frameCounter_addr_in  <= isp_recvId;
@@ -574,7 +582,20 @@ begin
                             common_send_data <= Representation_Id_RegisterValueResponse;
                             common_send_wea  <= "1";
                             sendState        <= writeTimeStamp;
-									 
+
+                        elsif behaviorgraph_sendRequest='1' and nc_readyToSend='1' then
+                             nextSendType := behaviorgraph;
+                             frameCounter_addr_in  <= bg_output_recvId_int;
+                             frameCounter_addr_out <= bg_output_recvId_int;
+                             -- write header
+                             nc_sendReceiver		  <= bg_output_recvId_int;
+                             nc_sendLength         <= x"0E";
+                             -- write message type
+                             common_send_addr      <= x"00";
+                             common_send_data		  <= Representation_Id_BGData;
+                             common_send_wea       <= "1";
+                             sendState             <= writeTimeStamp;
+
                         else
                             sendState <= idle;
                         end if;
@@ -605,9 +626,9 @@ begin
 
                     when waitSenderProcess =>
                         if (sendType=ping and ping_startSending='1') or
-                            (sendType=isp and isp_startSending='1') or
-                            (sendType=registerValue and register_startSending='1') or
-									 (sendType=behaviorgraph and behaviorgraph_startSending='1') then
+                           (sendType=isp and isp_startSending='1') or
+                           (sendType=registerValue and register_startSending='1') or
+                           (sendType=behaviorgraph and behaviorgraph_startSending='1') then
                             nc_startSending <= '1';
                             sendType_1 := common;
                             sendType_2 := common;
@@ -619,7 +640,7 @@ begin
             end if;
         end if;
     end process sender;
-    
+
     -- --------------------------------------------------------------------------
     --                             REGISTER
     -- --------------------------------------------------------------------------
@@ -669,18 +690,22 @@ begin
                             -- register read
                             -- -------------
                         when read_checkLength =>
-                            idleFlag := '1';
-                            -- check if data length is 11 bytes
-                            -- (id(1) + timestamp(8) + reg_addr(2))
-                            if nc_recvLength=x"0b" then
-                                byteCounter := 0;
-                                register_recvId    <= nc_recvSender;
-                                register_recv_addr <= x"09";
-                                registerRecvState  <= read_copyAddr;
-                            else
-                                register_recvAck   <= '1';
-                                register_recvError <= '1';
-                                registerRecvState  <= idle;
+                            -- first check if the register_access
+                            -- entity is not busy
+                            if reg_busy='0' then
+                                idleFlag := '1';
+                                -- check if data length is 11 bytes
+                                -- (id(1) + timestamp(8) + reg_addr(2))
+                                if nc_recvLength=x"0b" then
+                                    byteCounter := 0;
+                                    register_recvId    <= nc_recvSender;
+                                    register_recv_addr <= x"09";
+                                    registerRecvState  <= read_copyAddr;
+                                else
+                                    register_recvAck   <= '1';
+                                    register_recvError <= '1';
+                                    registerRecvState  <= idle;
+                                end if;
                             end if;
                             
                         when read_copyAddr =>
@@ -700,18 +725,22 @@ begin
                             -- register write
                             -- --------------
                         when write_checkLength =>
-                            idleFlag := '1';
-                            -- check if data length is 20 bytes
-                            -- (id(1) + timestamp(8) + reg_addr(2) + type(1) + value(8))
-                            if nc_recvLength=x"14" then
-                                byteCounter := 0;
-                                register_recvId    <= nc_recvSender;
-                                register_recv_addr <= x"09";
-                                registerRecvState  <= write_copyAddr;
-                            else
-                                register_recvAck   <= '1';
-                                register_recvError <= '1';
-                                registerRecvState  <= idle;
+                            -- first check if the register_access
+                            -- entity is not busy
+                            if reg_busy='0' then
+                                idleFlag := '1';
+                                -- check if data length is 20 bytes
+                                -- (id(1) + timestamp(8) + reg_addr(2) + type(1) + value(8))
+                                if nc_recvLength=x"14" then
+                                    byteCounter := 0;
+                                    register_recvId    <= nc_recvSender;
+                                    register_recv_addr <= x"09";
+                                    registerRecvState  <= write_copyAddr;
+                                else
+                                    register_recvAck   <= '1';
+                                    register_recvError <= '1';
+                                    registerRecvState  <= idle;
+                                end if;
                             end if;
 
                         when write_copyAddr =>
@@ -827,155 +856,6 @@ begin
             end if;
         end if;
     end process;
-
-    -- Behavior Graph --
-	 behaviorGraph_receiver : process(clk)
-	     variable idleFlag : std_logic;
-		  variable byteCounter : integer range 0 to 3;
-	 begin
-	     if CLK'event and CLK='1' then
-            if RST='1' then
-                bg_input_portid <= (others => '0');
-				bg_input_data   <= (others => '0');
-				bg_input_req    <= '0';
-					
-				idleFlag := '0';
-				byteCounter := 0;
-					
-				behaviorGraph_recvAck <= '0';
-				behaviorGraphRecvState <= idle;
-			else
-			   -- defaults
-			   behaviorGraph_recvAck <= '0';
-               bg_input_req <= '0';
-					
-               if idleFlag = '1' then
-                   idleFlag := '0';
-               else
-                   case behaviorGraphRecvState is
-                        when idle =>
-                            if (behaviorGraph_recvRequest = '1') then
-                                behaviorGraphRecvState <= checkLength;
-                            else
-                                behaviorGraphRecvState <= idle;
-                            end if;
-                            
-                        when checkLength =>
-                            idleFlag := '1';
-                            -- check if data length is 15 bytes (id + timestamp +
-                            -- 1byte output + 1byte input + 4byte float data)
-                             if nc_recvLength=x"0E" then
-                                  behaviorGraph_recv_addr <= x"09";
-                                  behaviorGraphRecvState  <= copyId;
-                             else
-                                  behaviorGraph_recvAck   <= '1';
-                                  behaviorGraphRecvState  <= idle;
-                             end if;
-                             
-                        when copyId =>
-                            -- Set the id of the input
-                           idleFlag := '1';
-                            byteCounter := 0;
-                            bg_input_portid <= nc_recv_data;
-                            behaviorGraph_recv_addr <= incr_f(behaviorGraph_recv_addr);
-                            behaviorGraphRecvState <= copyData;
-                            
-                        when copyData =>
-                            idleFlag := '1';
-                            -- Set the received data
-                           bg_input_data(byteCounter*8+7 downto byteCounter*8) <= nc_recv_data;
-                            if (byteCounter < 3) then
-                                byteCounter := byteCounter + 1;
-                                behaviorGraph_recv_addr <= incr_f(behaviorGraph_recv_addr);
-                                behaviorGraphRecvState <= copyData;
-                            else
-                               behaviorGraph_recvAck <= '1';
-                                behaviorGraphRecvState <= sync;
-                            end if;
-                            
-                        when sync =>
-                           -- Wait until the behavior graph has seen this
-                            bg_input_req <= '1';
-                            if (bg_input_ack = '1') then
-                                bg_input_req <= '0';
-                                behaviorGraphRecvState <= idle;
-                            else
-                                behaviorGraphRecvState <= sync;
-                            end if;
-                    end case;
-                end if;
-            end if;
-		  end if;
-	 end process;
-	 
-	 behaviorgraph_sender : process(clk)
-		variable byteCounter : integer range 0 to 3;
-	 begin
-		if CLK'event and CLK='1' then
-			if RST='1' then
-				byteCounter := 0;
-				bg_output_recvId_int <= (others => '0');
-				bg_output_portId_int <= (others => '0');
-				bg_output_data_int <= (others => '0');
-				bg_output_ack <= '0';
-				
-				behaviorgraph_sendRequest <= '0';
-				behaviorgraph_startSending <= '0';
-				behaviorgraph_send_addr <= (others => '0');
-				behaviorgraph_send_data <= (others => '0');
-				behaviorgraph_send_wea <= "0";
-				
-				behaviorGraphSendState <= idle;
-			else
-				-- defaults
-				bg_output_ack <= '0';
-				behaviorgraph_startSending <= '0';
-				behaviorgraph_send_wea     <= "0";
-				
-				case behaviorGraphSendState is
-					when idle =>
-						if bg_output_req = '1' then
-						   bg_output_recvId_int <= bg_output_recvId;
-							bg_output_portId_int <= bg_output_portid;
-							bg_output_data_int <= bg_output_data;
-							bg_output_ack <= '1';
-							behaviorgraph_sendRequest <= '1';
-							behaviorGraphSendState <= waitAck;
-						else
-							behaviorGraphSendState <= idle;
-						end if;
-						
-					when waitAck =>
-						if behaviorgraph_sendAck = '1' then
-							behaviorgraph_sendRequest <= '0';
-							behaviorGraphSendState <= writeId;
-						else
-							behaviorGraphSendState <= waitAck;
-						end if;
-						
-					when writeId =>
-						behaviorgraph_send_addr <= x"09";
-						behaviorgraph_send_data <= bg_output_portid_int;
-						behaviorgraph_send_wea <= "1";
-						byteCounter := 0;
-						behaviorGraphSendState <= writeData;
-					
-					when writeData =>
-						behaviorgraph_send_addr <= incr_f(behaviorgraph_send_addr);
-						behaviorgraph_send_data <= bg_output_data_int(byteCounter*8+7 downto byteCounter*8);
-						behaviorgraph_send_wea <= "1";
-						if (byteCounter < 3) then
-						   byteCounter := byteCounter + 1;
-							behaviorGraphSendState <= writeData;
-						else
-							behaviorgraph_startSending <= '1';
-							behaviorGraphSendState <= idle;
-						end if;
-					
-				end case;
-			end if;
-		end if;
-	 end process;
 
     -- --------------------------------------------------------------------------
     --                                PING
@@ -1444,5 +1324,157 @@ begin
             end if;
         end if;
     end process;
+
+    -- --------------------------------------------------------------------------
+    --                                Behavior Graph
+    -- --------------------------------------------------------------------------
+
+	 behaviorGraph_receiver : process(clk)
+	     variable idleFlag : std_logic;
+		  variable byteCounter : integer range 0 to 3;
+	 begin
+	     if CLK'event and CLK='1' then
+            if RST='1' then
+                bg_input_portid <= (others => '0');
+				bg_input_data   <= (others => '0');
+				bg_input_req    <= '0';
+					
+				idleFlag := '0';
+				byteCounter := 0;
+					
+				behaviorGraph_recvAck <= '0';
+				behaviorGraphRecvState <= idle;
+			else
+			   -- defaults
+			   behaviorGraph_recvAck <= '0';
+               bg_input_req <= '0';
+					
+               if idleFlag = '1' then
+                   idleFlag := '0';
+               else
+                   case behaviorGraphRecvState is
+                        when idle =>
+                            if (behaviorGraph_recvRequest = '1') then
+                                behaviorGraphRecvState <= checkLength;
+                            else
+                                behaviorGraphRecvState <= idle;
+                            end if;
+                            
+                        when checkLength =>
+                            idleFlag := '1';
+                            -- check if data length is 15 bytes (id + timestamp +
+                            -- 1byte output + 1byte input + 4byte float data)
+                             if nc_recvLength=x"0E" then
+                                  behaviorGraph_recv_addr <= x"09";
+                                  behaviorGraphRecvState  <= copyId;
+                             else
+                                  behaviorGraph_recvAck   <= '1';
+                                  behaviorGraphRecvState  <= idle;
+                             end if;
+                             
+                        when copyId =>
+                            -- Set the id of the input
+                           idleFlag := '1';
+                            byteCounter := 0;
+                            bg_input_portid <= nc_recv_data;
+                            behaviorGraph_recv_addr <= incr_f(behaviorGraph_recv_addr);
+                            behaviorGraphRecvState <= copyData;
+                            
+                        when copyData =>
+                            idleFlag := '1';
+                            -- Set the received data
+                           bg_input_data(byteCounter*8+7 downto byteCounter*8) <= nc_recv_data;
+                            if (byteCounter < 3) then
+                                byteCounter := byteCounter + 1;
+                                behaviorGraph_recv_addr <= incr_f(behaviorGraph_recv_addr);
+                                behaviorGraphRecvState <= copyData;
+                            else
+                               behaviorGraph_recvAck <= '1';
+                                behaviorGraphRecvState <= sync;
+                            end if;
+                            
+                        when sync =>
+                           -- Wait until the behavior graph has seen this
+                            bg_input_req <= '1';
+                            if (bg_input_ack = '1') then
+                                bg_input_req <= '0';
+                                behaviorGraphRecvState <= idle;
+                            else
+                                behaviorGraphRecvState <= sync;
+                            end if;
+                    end case;
+                end if;
+            end if;
+		  end if;
+	 end process;
+	 
+	 behaviorgraph_sender : process(clk)
+		variable byteCounter : integer range 0 to 3;
+	 begin
+		if CLK'event and CLK='1' then
+			if RST='1' then
+				byteCounter := 0;
+				bg_output_recvId_int <= (others => '0');
+				bg_output_portId_int <= (others => '0');
+				bg_output_data_int <= (others => '0');
+				bg_output_ack <= '0';
+				
+				behaviorgraph_sendRequest <= '0';
+				behaviorgraph_startSending <= '0';
+				behaviorgraph_send_addr <= (others => '0');
+				behaviorgraph_send_data <= (others => '0');
+				behaviorgraph_send_wea <= "0";
+				
+				behaviorGraphSendState <= idle;
+			else
+				-- defaults
+				bg_output_ack <= '0';
+				behaviorgraph_startSending <= '0';
+				behaviorgraph_send_wea     <= "0";
+				
+				case behaviorGraphSendState is
+					when idle =>
+						if bg_output_req = '1' then
+						   bg_output_recvId_int <= bg_output_recvId;
+							bg_output_portId_int <= bg_output_portid;
+							bg_output_data_int <= bg_output_data;
+							bg_output_ack <= '1';
+							behaviorgraph_sendRequest <= '1';
+							behaviorGraphSendState <= waitAck;
+						else
+							behaviorGraphSendState <= idle;
+						end if;
+						
+					when waitAck =>
+						if behaviorgraph_sendAck = '1' then
+							behaviorgraph_sendRequest <= '0';
+							behaviorGraphSendState <= writeId;
+						else
+							behaviorGraphSendState <= waitAck;
+						end if;
+						
+					when writeId =>
+						behaviorgraph_send_addr <= x"09";
+						behaviorgraph_send_data <= bg_output_portid_int;
+						behaviorgraph_send_wea <= "1";
+						byteCounter := 0;
+						behaviorGraphSendState <= writeData;
+					
+					when writeData =>
+						behaviorgraph_send_addr <= incr_f(behaviorgraph_send_addr);
+						behaviorgraph_send_data <= bg_output_data_int(byteCounter*8+7 downto byteCounter*8);
+						behaviorgraph_send_wea <= "1";
+						if (byteCounter < 3) then
+						   byteCounter := byteCounter + 1;
+							behaviorGraphSendState <= writeData;
+						else
+							behaviorgraph_startSending <= '1';
+							behaviorGraphSendState <= idle;
+						end if;
+					
+				end case;
+			end if;
+		end if;
+	 end process;
 
 end Behavioral;
