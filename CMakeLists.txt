@@ -15,21 +15,21 @@ if(NOT TARGET hypergraph)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hypergraph/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hypergraph/src)
 endif(NOT TARGET hypergraph)
-if(NOT TARGET domaingraph)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/domaingraph domaingraph)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/domaingraph/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/domaingraph/src)
-endif(NOT TARGET domaingraph)
+if(NOT TARGET componentnet)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/componentnet componentnet)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/componentnet/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/componentnet/src)
+endif(NOT TARGET componentnet)
 if(NOT TARGET hwgraph)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph hwgraph)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph/include)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/hwgraph/src)
 endif(NOT TARGET hwgraph)
-if(NOT TARGET swgraph)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/swgraph swgraph)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/swgraph/include)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/swgraph/src)
-endif(NOT TARGET swgraph)
+if(NOT TARGET bgraph)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/bgraph bgraph)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/bgraph/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lib/bgraph/src)
+endif(NOT TARGET bgraph)
 if(NOT TARGET HypergraphGUI)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../gui HypergraphGUI)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../gui/include)
@@ -42,7 +42,7 @@ SET(ENV{PKG_CONFIG_PATH}
 
 find_package(PkgConfig)
 pkg_check_modules(toolchain_PKGCONFIG REQUIRED
-    hypergraph domaingraph hwgraph swgraph
+    hypergraph componentnet hwgraph bgraph
     )
 
 include_directories(${toolchain_PKGCONFIG_INCLUDE_DIRS})
@@ -75,11 +75,11 @@ add_custom_target(dbg-export-hw-model-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hwgraph/dbg-export-hw-model ${CMAKE_SOURCE_DIR}/dbg-export-hw-model
     DEPENDS hwgraph)
 add_custom_target(bg-import-model-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/swgraph/bg-import-model ${CMAKE_SOURCE_DIR}/bg-import-model
-    DEPENDS swgraph)
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bgraph/bg-import-model ${CMAKE_SOURCE_DIR}/bg-import-model
+    DEPENDS bgraph)
 add_custom_target(bg-export-model-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/swgraph/bg-export-model ${CMAKE_SOURCE_DIR}/bg-export-model
-    DEPENDS swgraph)
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/bgraph/bg-export-model ${CMAKE_SOURCE_DIR}/bg-export-model
+    DEPENDS bgraph)
 add_custom_target(hypergraph-gui-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/HypergraphGUI/HypergraphGUI ${CMAKE_SOURCE_DIR}/hypergraph-gui
     DEPENDS HypergraphGUI)
