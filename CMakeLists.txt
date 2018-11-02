@@ -66,10 +66,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # add custom targets (symlinks)
 add_custom_target(query-graph-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/query ${CMAKE_SOURCE_DIR}/query
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/query ${CMAKE_SOURCE_DIR}/query-graph
     DEPENDS hypergraph)
 add_custom_target(merge-graph-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/merge ${CMAKE_SOURCE_DIR}/merge
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/merge ${CMAKE_SOURCE_DIR}/merge-graph
     DEPENDS hypergraph)
 add_custom_target(generate-cpp-class-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/componentnet/gen_cpp_class ${CMAKE_SOURCE_DIR}/generate-cpp-class
