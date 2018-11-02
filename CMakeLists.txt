@@ -65,9 +65,24 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 #    )
 
 # add custom targets (symlinks)
-add_custom_target(simplify-graph-lazy-symlink ALL
-    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/simplify ${CMAKE_SOURCE_DIR}/simplify-graph
+add_custom_target(query-graph-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/query ${CMAKE_SOURCE_DIR}/query
     DEPENDS hypergraph)
+add_custom_target(merge-graph-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hypergraph/merge ${CMAKE_SOURCE_DIR}/merge
+    DEPENDS hypergraph)
+add_custom_target(generate-cpp-class-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/componentnet/gen_cpp_class ${CMAKE_SOURCE_DIR}/generate-cpp-class
+    DEPENDS componentnet)
+add_custom_target(generate-vhdl-entity-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/componentnet/gen_vhdl_entity ${CMAKE_SOURCE_DIR}/generate-vhdl-entity
+    DEPENDS componentnet)
+add_custom_target(generate-implementation-networks-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/componentnet/gen_impl_networks ${CMAKE_SOURCE_DIR}/generate-implementation-networks
+    DEPENDS componentnet)
+add_custom_target(map-implementations-to-processors-lazy-symlink ALL
+    ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/componentnet/sw2hw_map ${CMAKE_SOURCE_DIR}/map-implementations-to-processors
+    DEPENDS componentnet)
 add_custom_target(dbg-import-hw-model-lazy-symlink ALL
     ln --force -s ${CMAKE_CURRENT_BINARY_DIR}/hwgraph/dbg-import-hw-model ${CMAKE_SOURCE_DIR}/dbg-import-hw-model
     DEPENDS hwgraph)
@@ -85,7 +100,17 @@ add_custom_target(hypergraph-gui-lazy-symlink ALL
     DEPENDS HypergraphGUI)
 # and clean them up
 set_directory_properties(PROPERTIES
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/simplify-graph")
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/query-graph")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/merge-graph")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/generate-cpp-class")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/generate-vhdl-entity")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/generate-implementation-networks")
+set_directory_properties(PROPERTIES
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/map-implementations-to-processors")
 set_directory_properties(PROPERTIES
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_SOURCE_DIR}/hypergraph-gui")
 set_directory_properties(PROPERTIES
